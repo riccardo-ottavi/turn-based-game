@@ -5,7 +5,7 @@ export type Player = {
     name: string;
     gold: number;
     winPoints: number;
-    faction: Faction;  
+    faction: Faction;
 }
 
 export type Position = {
@@ -31,7 +31,7 @@ export type Unit = {
     ownerId: number;
 }
 
-type GamePhase = "start" | "movement" | "combat" | "end"
+export type GamePhase = "movement" | "combat";
 
 export type GameState = {
     turn: number;
@@ -43,5 +43,8 @@ export type GameState = {
 }
 
 export type GameAction =
+  | { type: "init"; state: GameState }
   | { type: "move"; unitId: number; to: Position }
-  | { type: "attack"; attackerId: number; targetId: number };
+  | { type: "startCombat" }
+  | { type: "resolveCombat" }
+  | { type: "endTurn" };

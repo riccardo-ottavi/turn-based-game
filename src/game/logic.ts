@@ -1,49 +1,82 @@
-import type { GameState, GameAction, Faction, Unit, Player } from "./types/gameTypes";
+import type { GameState, GameAction, Faction, Unit, Player, Position } from "./types/gameTypes";
 
 export function applyAction(state: GameState, action: GameAction): GameState {
   switch (action.type) {
+
+    case "init":
+      return action.state;
+
     case "move": {
-      if (state.phase !== "movement") {
-        console.warn("Non puoi muovere unità in questa fase");
+      if (state.phase !== "movement") return state;
+
+      const unit = state.units.find(u => u.id === action.unitId);
+      if (!unit) return state;
+
+      if (unit.ownerId !== state.currentPlayerId) {
+        console.warn("Non puoi muovere unità nemiche");
         return state;
       }
 
-      const unitIndex = state.units.findIndex(u => u.id === action.unitId);
-      if (unitIndex === -1) {
-        console.warn(`Unità con id ${action.unitId} non trovata`);
-        return state;
-      }
-
-      const unit = state.units[unitIndex];
-
-      const updatedUnit = { ...unit, position: action.to };
-      const newUnits = [...state.units];
-      newUnits[unitIndex] = updatedUnit;
+      const newUnits = state.units.map(u =>
+        u.id === action.unitId ? { ...u, position: action.to } : u
+      );
 
       return { ...state, units: newUnits };
     }
 
-    case "attack":
- 
-      {
-      if (state.phase !== "combat") {
-        console.warn("Non puoi attaccare in questa fase");
-        return state;
-      }
+    case "startCombat": {
+      if (state.phase !== "movement") return state;
+      return { ...state, phase: "combat" };
+    }
 
-      const attacker = state.units.find(u => u.id === action.attackerId);
-      const target = state.units.find(u => u.id === action.targetId);
-      if (!attacker || !target) return state;
+    case "resolveCombat": {
+      if (state.phase !== "combat") return state;
 
-      const damage = attacker.baseStats.attack - target.baseStats.defence;
-      const newHp = Math.max(target.currentHp - Math.max(damage, 0), 0);
-      const newUnits = state.units.map(u =>
-        u.id === target.id ? { ...u, currentHp: newHp } : u
-      );
+      let newUnits = [...state.units];
 
-      console.log(`${attacker.name} attacca ${target.name} e infligge ${Math.max(damage, 0)} danni`);
+      const positionsMap: Record<string, Unit[]> = {};
+
+      newUnits.forEach(u => {
+        const key = `${u.position.x},${u.position.y}`;
+        if (!positionsMap[key]) positionsMap[key] = [];
+        positionsMap[key].push(u);
+      });
+
+      Object.values(positionsMap).forEach(unitsInHex => {
+        if (unitsInHex.length < 2) return;
+
+        unitsInHex.forEach(attacker => {
+          unitsInHex.forEach(target => {
+            if (attacker.ownerId !== target.ownerId && target.currentHp > 0) {
+              const damage = Math.max(
+                attacker.baseStats.attack - target.baseStats.defence,
+                0
+              );
+
+              newUnits = newUnits.map(u =>
+                u.id === target.id
+                  ? { ...u, currentHp: Math.max(u.currentHp - damage, 0) }
+                  : u
+              );
+            }
+          });
+        });
+      });
+
+      newUnits = newUnits.filter(u => u.currentHp > 0);
 
       return { ...state, units: newUnits };
+    }
+
+    case "endTurn": {
+      const nextPlayer = state.currentPlayerId === 1 ? 2 : 1;
+
+      return {
+        ...state,
+        currentPlayerId: nextPlayer,
+        turn: state.turn + 1,
+        phase: "movement"
+      };
     }
 
     default:
@@ -59,7 +92,7 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
       { id: ownerId * 10 + 3, name: "Knight", category: "tank", currentHp: 15, baseStats: { hp: 15, attack: 2, defence: 4, speed: 1 }, position: { x: 0, y: 1 }, ownerId },
     ];
   } else {
-    // orcs
+ 
     return [
       { id: ownerId * 10 + 1, name: "Orc Warrior", category: "melee", currentHp: 12, baseStats: { hp: 12, attack: 4, defence: 1, speed: 1 }, position: { x: 5, y: 5 }, ownerId },
       { id: ownerId * 10 + 2, name: "Orc Archer", category: "ranged", currentHp: 7, baseStats: { hp: 7, attack: 3, defence: 1, speed: 2 }, position: { x: 6, y: 5 }, ownerId },
@@ -68,22 +101,52 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
   }
 }
 
-export function initializeGame(playerName: string, chosenFaction: Faction): GameState {
-  const player: Player = { id: 1, name: playerName, faction: chosenFaction, gold: 10, winPoints: 0 };
-  const enemyFaction: Faction = chosenFaction === "humans" ? "orcs" : "humans";
-  const enemy: Player = { id: 2, name: "Enemy", faction: enemyFaction, gold: 10, winPoints: 0 };
+export function createInitAction(playerFaction: Faction): GameAction {
+  const enemyFaction: Faction =
+    playerFaction === "humans" ? "orcs" : "humans";
 
-  const units = [
-    ...createInitialArmy(player.id, chosenFaction),
-    ...createInitialArmy(enemy.id, enemyFaction)
+  const newPlayers: Player[] = [
+    { id: 1, name: "Player", faction: playerFaction, gold: 10, winPoints: 0 },
+    { id: 2, name: "Enemy", faction: enemyFaction, gold: 10, winPoints: 0 }
+  ];
+
+  const newUnits: Unit[] = [
+    ...createInitialArmy(newPlayers[0].id, playerFaction),
+    ...createInitialArmy(newPlayers[1].id, enemyFaction)
   ];
 
   return {
-    turn: 1,
-    isGameOver: false,
-    players: [player, enemy],
-    units,
-    phase: "movement",
-    currentPlayerId: 1
+    type: "init",
+    state: {
+      players: newPlayers,
+      units: newUnits,
+      turn: 1,
+      phase: "movement",
+      isGameOver: false,
+      currentPlayerId: 1
+    }
+  };
+}
+
+export function createStartCombatAction(): GameAction {
+  return { type: "startCombat" };
+}
+
+export function createResolveCombatAction(): GameAction {
+  return { type: "resolveCombat" };
+}
+
+export function createEndTurnAction(): GameAction {
+  return { type: "endTurn" };
+}
+
+export function createMoveAction(
+  unitId: number,
+  to: Position
+): GameAction {
+  return {
+    type: "move",
+    unitId,
+    to
   };
 }
