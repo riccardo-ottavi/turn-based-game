@@ -1,8 +1,11 @@
+export type Faction = "humans" | "orcs";
+
 export type Player = {
     id: number;
     name: string;
     gold: number;
     winPoints: number;
+    faction: Faction;  
 }
 
 export type Position = {
