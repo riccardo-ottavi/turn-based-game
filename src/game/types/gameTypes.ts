@@ -14,23 +14,25 @@ export type Position = {
 
 }
 
-type UnitCategory = "melee" | "ranged" | "tank";
+export type UnitCategory = "melee" | "ranged" | "tank";
 
 export type Unit = {
-    id: number;
-    name: string;
-    category: UnitCategory;
-    currentHp: number;
-    baseStats: {
-        hp: number;
-        attack: number;
-        defence: number;
-        speed: number;
-    };
-    position: Position;
-    ownerId: number;
-    hasMoved: boolean;
-}
+  hasAttacked: any;
+  id: number;
+  name: string;
+  category: UnitCategory;
+  currentHp: number;
+  baseStats: {
+    hp: number;
+    attack: number;
+    defence: number;
+    speed: number;
+    range: number; 
+  };
+  position: Position;
+  ownerId: number;
+  hasMoved: boolean;
+};
 
 export type GamePhase = "movement" | "combat";
 
@@ -41,7 +43,8 @@ export type GameState = {
     units: Unit[];
     phase: GamePhase;
     currentPlayerId: number;
-    combatLog?: string[];
+    combatLog?: string[]
+    map: MapCell[][]
 }
 
 export type GameAction =
@@ -49,4 +52,18 @@ export type GameAction =
   | { type: "move"; unitId: number; to: Position }
   | { type: "startCombat" }
   | { type: "resolveCombat" }
-  | { type: "endTurn" };
+  | { type: "endTurn" }
+  | {
+    targetPosition: any;
+    attackerId: number;
+    targetId: number; type: "attack" 
+};
+
+  export type TileType = "wall" | "tree" | "chest" | "grass";
+
+export type MapCell = {
+  x: number;
+  y: number;
+  type: TileType;
+  walkable: boolean;  
+};

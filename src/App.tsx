@@ -1,6 +1,7 @@
 import { useReducer, useEffect, useState } from "react";
-import { getReachableCells } from "./game/logic";
-import type { Unit } from "./game/types/gameTypes";
+import type { Unit, MapCell } from "./game/types/gameTypes";
+import { getReachableCells, getAttackableCells } from "./game/logic";
+
 import {
   applyAction,
   createInitAction,
@@ -15,7 +16,9 @@ const CELL_SIZE = 60;
 
 export default function App() {
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
+
   const [state, dispatch] = useReducer(applyAction, {
+    map: [],
     units: [],
     players: [],
     turn: 1,
@@ -25,22 +28,17 @@ export default function App() {
   });
 
   useEffect(() => {
-    dispatch(createInitAction("humans"));
+    dispatch(createInitAction());
   }, []);
 
   const startCombat = () => {
     dispatch(createStartCombatAction());
     dispatch(createResolveCombatAction());
   };
+
   const endTurn = () => dispatch(createEndTurnAction());
 
-  const cells: { x: number; y: number }[] = [];
-  for (let y = 0; y < GRID_SIZE; y++) {
-    for (let x = 0; x < GRID_SIZE; x++) {
-      cells.push({ x, y });
-    }
-  }
-
+  // Mappa unità per cella
   const unitsMap: Record<string, Unit[]> = {};
   state.units.forEach(u => {
     const key = `${u.position.x},${u.position.y}`;
@@ -48,14 +46,44 @@ export default function App() {
     unitsMap[key].push(u);
   });
 
+  // Colori celle
+  const getCellColor = (cell: MapCell) => {
+    switch (cell.type) {
+      case "grass": return "#a0e0a0";
+      case "tree": return "#228B22";
+      case "wall": return "#555555";
+      case "chest": return "#FFD700";
+      default: return "#eee";
+    }
+  };
+
+  const selectedUnit = state.units.find(u => u.id === selectedUnitId);
+
+  const reachable = selectedUnit && !selectedUnit.hasMoved
+    ? getReachableCells(selectedUnit, state.map)
+    : [];
+
+  const attackable = selectedUnit && !selectedUnit.hasAttacked
+  ? getAttackableCells(selectedUnit, state.map, state.units)
+  : [];
+
+
   return (
     <div style={{ display: "flex", gap: "20px" }}>
+      {/* UI LATERALE */}
       <div>
         <h1>Turno: {state.turn}</h1>
         <h2>Fase: {state.phase}</h2>
         <h3>Giocatore attivo: {state.currentPlayerId}</h3>
 
+        <h3>
+          {selectedUnitId
+            ? "Scegli: muovi (giallo) o attacca (rosso)"
+            : "Seleziona un'unità"}
+        </h3>
+
         <hr />
+            
         <h2>Unità</h2>
         {state.units.map(u => (
           <div key={u.id} style={{ marginBottom: "10px" }}>
@@ -63,24 +91,33 @@ export default function App() {
             <br />
             HP: {u.currentHp}
             <br />
-            Posizione: ({u.position.x}, {u.position.y})
-            Movimento: {u.baseStats.speed}
+            Pos: ({u.position.x}, {u.position.y})
+            <br />
+            Move: {u.baseStats.speed}
+            <br />
+            Range: {u.baseStats.range}
 
-            {state.phase === "movement" && u.ownerId === state.currentPlayerId && !u.hasMoved && (
-              <button onClick={() => setSelectedUnitId(u.id)}>Seleziona</button>
-            )}
+            {state.phase === "movement" &&
+              u.ownerId === state.currentPlayerId}
           </div>
         ))}
 
         <hr />
+
         {state.phase === "movement" && (
-          <button onClick={startCombat}>Fine Movimento → Combattimento</button>
+          <button onClick={startCombat}>
+            Fine Movimento → Combattimento
+          </button>
         )}
+
         {state.phase === "combat" && (
-          <button onClick={endTurn}>Fine Combattimento → Fine Turno</button>
+          <button onClick={endTurn}>
+            Fine Combattimento → Fine Turno
+          </button>
         )}
       </div>
 
+      {/* MAPPA */}
       <div
         style={{
           display: "grid",
@@ -89,16 +126,19 @@ export default function App() {
           gap: "1px",
         }}
       >
-        {cells.map(cell => {
+        {state.map.flat().map((cell: MapCell) => {
           const key = `${cell.x},${cell.y}`;
           const unitsInCell = unitsMap[key] || [];
 
-          const selectedUnit = state.units.find(u => u.id === selectedUnitId);
-          const reachable = selectedUnit && !selectedUnit.hasMoved
-            ? getReachableCells(selectedUnit, GRID_SIZE)
-            : [];
+          const isReachable = reachable.some(
+            c => c.x === cell.x && c.y === cell.y
+          );
 
-          const isReachable = reachable.some(c => c.x === cell.x && c.y === cell.y);
+          const isAttackable = attackable.some(
+            c => c.x === cell.x && c.y === cell.y
+          );
+
+          const isSelected = unitsInCell.some(u => u.id === selectedUnitId);
 
           return (
             <div
@@ -108,24 +148,62 @@ export default function App() {
                 height: CELL_SIZE,
                 border: "1px solid black",
                 position: "relative",
-                backgroundColor: isReachable
-                  ? "#a0e0a0"
-                  : (cell.x + cell.y) % 2 === 0
-                    ? "#eee"
-                    : "#ccc",
+                backgroundColor: isAttackable
+                  ? "#f08080"   // ROSSO → attacco
+                  : isReachable
+                    ? "#f0f080" // GIALLO → movimento
+                    : getCellColor(cell),
               }}
               onClick={() => {
-                if (!selectedUnit || selectedUnit.hasMoved) return;
+  const clickedUnit = unitsInCell[0];
 
-                const distance =
-                  Math.abs(selectedUnit.position.x - cell.x) +
-                  Math.abs(selectedUnit.position.y - cell.y);
+  // 1️⃣ SELEZIONE UNITÀ
+  if (
+    clickedUnit &&
+    clickedUnit.ownerId === state.currentPlayerId
+  ) {
+    setSelectedUnitId(clickedUnit.id);
+    return;
+  }
 
-                if (distance > selectedUnit.baseStats.speed || distance === 0) return;
+  // Se non ho selezionato nulla → stop
+  if (!selectedUnit) return;
 
-                dispatch(createMoveAction(selectedUnit.id, { x: cell.x, y: cell.y }));
-                setSelectedUnitId(null);
-              }}
+  // 2️⃣ ATTACCO
+  if (isAttackable) {
+    const targetUnit = unitsInCell.find(
+      u => u.ownerId !== selectedUnit.ownerId
+    );
+
+    if (!targetUnit) return;
+
+    dispatch({
+      type: "attack",
+      attackerId: selectedUnit.id,
+      targetId: targetUnit.id,
+      targetPosition: { x: cell.x, y: cell.y }
+    });
+
+    setSelectedUnitId(null);
+    return;
+  }
+
+  // 3️⃣ MOVIMENTO
+  if (isReachable && !selectedUnit.hasMoved) {
+    dispatch(
+      createMoveAction(selectedUnit.id, {
+        x: cell.x,
+        y: cell.y
+      })
+    );
+
+    setSelectedUnitId(null);
+    return;
+  }
+
+  // 4️⃣ CLICK VUOTO → DESELEZIONA
+  setSelectedUnitId(null);
+}}
             >
               {unitsInCell.map((u, i) => (
                 <div
@@ -133,7 +211,8 @@ export default function App() {
                   style={{
                     width: "90%",
                     height: "20px",
-                    backgroundColor: u.ownerId === 1 ? "blue" : "red",
+                    backgroundColor:
+                      u.ownerId === 1 ? "blue" : "red",
                     color: "white",
                     fontSize: "12px",
                     textAlign: "center",
@@ -141,6 +220,7 @@ export default function App() {
                     position: "absolute",
                     top: `${i * 22}px`,
                     left: "5%",
+                    border: isSelected ? "3px solid yellow" : "1px solid black",
                   }}
                 >
                   {u.name[0]}:{u.currentHp}
@@ -149,18 +229,6 @@ export default function App() {
             </div>
           );
         })}
-      </div>
-      <div style={{ marginTop: "20px" }}>
-        <h2>Log Combattimento</h2>
-        {state.combatLog && state.combatLog.length > 0 ? (
-          <ul>
-            {state.combatLog.map((entry, i) => (
-              <li key={i}>{entry}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>Nessun combattimento ancora.</p>
-        )}
       </div>
     </div>
   );

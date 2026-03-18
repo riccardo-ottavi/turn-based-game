@@ -1,5 +1,6 @@
-import type { GameState, GameAction, Unit, Position, Faction, Player } from "./types/gameTypes";
 import { createInitialArmy } from "./gameUtils";
+import type { GameState, GameAction, Unit, Position, MapCell, Player } from "./types/gameTypes";
+
 
 export function applyAction(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -21,6 +22,14 @@ export function applyAction(state: GameState, action: GameAction): GameState {
 
       if (distance > unit.baseStats.speed || distance === 0) return state;
 
+      const targetCell = state.map[action.to.y][action.to.x];
+      if (!targetCell.walkable) return state;
+
+      const occupied = state.units.some(
+        u => u.position.x === action.to.x && u.position.y === action.to.y
+      );
+      if (occupied) return state;
+
       const newUnits = state.units.map(u =>
         u.id === action.unitId
           ? { ...u, position: { ...action.to }, hasMoved: true }
@@ -30,6 +39,36 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       return { ...state, units: newUnits };
     }
 
+    case "attack": {
+  const attacker = state.units.find(u => u.id === action.attackerId);
+  if (!attacker) return state;
+
+  if (attacker.hasAttacked) return state;
+
+  const newUnits = state.units
+    .map(u => {
+      if (u.id !== action.targetId) return u;
+
+      const damage = Math.max(
+        attacker.baseStats.attack - u.baseStats.defence,
+        0
+      );
+
+      return {
+        ...u,
+        currentHp: Math.max(u.currentHp - damage, 0)
+      };
+    })
+    .filter(u => u.currentHp > 0)
+    .map(u =>
+      u.id === attacker.id
+        ? { ...u, hasAttacked: true }
+        : u
+    );
+
+  return { ...state, units: newUnits };
+}
+
     case "startCombat":
       if (state.phase !== "movement") return state;
       return { ...state, phase: "combat" };
@@ -38,13 +77,15 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       if (state.phase !== "combat") return state;
       return resolveCombat(state);
 
+
+
     case "endTurn":
       return {
         ...state,
         currentPlayerId: state.currentPlayerId === 1 ? 2 : 1,
         turn: state.turn + 1,
         phase: "movement",
-        units: state.units.map(u => ({ ...u, hasMoved: false }))
+        units: state.units.map(u => ({ ...u, hasMoved: false, hasAttacked: false }))
       };
 
     default:
@@ -89,31 +130,97 @@ function resolveCombat(state: GameState): GameState {
   return { ...state, units: newUnits, combatLog: log };
 }
 
-// Azioni
-export function createInitAction(playerFaction: Faction): GameAction {
-  const enemyFaction: Faction = playerFaction === "humans" ? "orcs" : "humans";
 
-  const newPlayers: Player[] = [
-    { id: 1, name: "Player", faction: playerFaction, gold: 10, winPoints: 0 },
-    { id: 2, name: "Enemy", faction: enemyFaction, gold: 10, winPoints: 0 }
-  ];
+function randomCellType(): MapCell["type"] {
+  const rnd = Math.random();
+  if (rnd < 0.6) return "grass";       // 60% walkable
+  if (rnd < 0.8) return "tree";        // 20% ostacolo
+  if (rnd < 0.95) return "wall";       // 15% ostacolo
+  return "chest";                       // 5% oggetto speciale
+}
 
-  const newUnits: Unit[] = [
-    ...createInitialArmy(newPlayers[0].id, playerFaction),
-    ...createInitialArmy(newPlayers[1].id, enemyFaction)
-  ];
-
-  return {
-    type: "init",
-    state: {
-      players: newPlayers,
-      units: newUnits,
-      turn: 1,
-      phase: "movement",
-      isGameOver: false,
-      currentPlayerId: 1
+export function generateRandomMap(width: number, height: number): MapCell[][] {
+  const map: MapCell[][] = [];
+  for (let y = 0; y < height; y++) {
+    const row: MapCell[] = [];
+    for (let x = 0; x < width; x++) {
+      const type = randomCellType();
+      row.push({
+        x,
+        y,
+        type,
+        walkable: type === "grass" || type === "chest"
+      });
     }
+    map.push(row);
+  }
+  return map;
+}
+
+function getSpawnCells(map: MapCell[][], side: "left" | "right", count: number): MapCell[] {
+  const width = map[0].length;
+  const height = map.length;
+  const xRange = side === "left" ? [0, 1] : [width - 2, width - 1];
+
+  const walkable: MapCell[] = [];
+  for (let y = 0; y < height; y++) {
+    for (let x = xRange[0]; x <= xRange[1]; x++) {
+      if (map[y][x].type === "grass") walkable.push(map[y][x]);
+    }
+  }
+
+  const selected: MapCell[] = [];
+  while (selected.length < count && walkable.length > 0) {
+    const idx = Math.floor(Math.random() * walkable.length);
+    selected.push(walkable[idx]);
+    walkable.splice(idx, 1);
+  }
+
+  return selected;
+}
+
+function initUnits(map: MapCell[][]): Unit[] {
+  const p1Army = createInitialArmy(1, "humans");
+  const p2Army = createInitialArmy(2, "orcs");
+
+  const p1Cells = getSpawnCells(map, "left", p1Army.length);
+  const p2Cells = getSpawnCells(map, "right", p2Army.length);
+
+  const positionedP1 = p1Army.map((unit, i) => ({
+    ...unit,
+    position: { x: p1Cells[i].x, y: p1Cells[i].y }
+  }));
+
+  const positionedP2 = p2Army.map((unit, i) => ({
+    ...unit,
+    position: { x: p2Cells[i].x, y: p2Cells[i].y }
+  }));
+
+  return [...positionedP1, ...positionedP2];
+}
+
+export function createInitAction(): GameAction {
+  const width = 8;
+  const height = 8;
+  const map = generateRandomMap(width, height);
+  const units = initUnits(map);
+
+  const players: Player[] = [
+    { id: 1, name: "Player 1", faction: "humans", gold: 10, winPoints: 0 },
+    { id: 2, name: "Player 2", faction: "orcs", gold: 10, winPoints: 0 }
+  ];
+
+  const state: GameState = {
+    map,
+    units,
+    players,
+    turn: 1,
+    phase: "movement",
+    isGameOver: false,
+    currentPlayerId: 1
   };
+
+  return { type: "init", state };
 }
 
 export function createMoveAction(unitId: number, to: Position): GameAction {
@@ -132,8 +239,10 @@ export function createEndTurnAction(): GameAction {
   return { type: "endTurn" };
 }
 
-export function getReachableCells(unit: Unit, gridSize: number) {
+export function getReachableCells(unit: Unit, map: MapCell[][]) {
   const cells: { x: number; y: number }[] = [];
+
+  const gridSize = map.length;
 
   for (let dx = -unit.baseStats.speed; dx <= unit.baseStats.speed; dx++) {
     for (let dy = -unit.baseStats.speed; dy <= unit.baseStats.speed; dy++) {
@@ -143,8 +252,11 @@ export function getReachableCells(unit: Unit, gridSize: number) {
         const y = unit.position.y + dy;
 
         if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
-          
+          const cell = map[y][x];
+
+          if (!cell.walkable) continue;
           if (x === unit.position.x && y === unit.position.y) continue;
+
           cells.push({ x, y });
         }
       }
@@ -153,3 +265,39 @@ export function getReachableCells(unit: Unit, gridSize: number) {
 
   return cells;
 }
+
+export const getAttackableCells = (
+  unit: Unit,
+  map: MapCell[][],
+  units: Unit[]
+) => {
+  const cells: { x: number; y: number }[] = [];
+  const gridSize = map.length;
+
+  if (unit.baseStats.range <= 0) return cells;
+
+  for (let dx = -unit.baseStats.range; dx <= unit.baseStats.range; dx++) {
+    for (let dy = -unit.baseStats.range; dy <= unit.baseStats.range; dy++) {
+
+      if (Math.abs(dx) + Math.abs(dy) <= unit.baseStats.range) {
+        const x = unit.position.x + dx;
+        const y = unit.position.y + dy;
+
+        if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) continue;
+
+        const enemy = units.find(
+          u =>
+            u.position.x === x &&
+            u.position.y === y &&
+            u.ownerId !== unit.ownerId
+        );
+
+        if (!enemy) continue;
+
+        cells.push({ x, y });
+      }
+    }
+  }
+
+  return cells;
+};

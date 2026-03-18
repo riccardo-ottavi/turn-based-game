@@ -21,6 +21,7 @@ export function createInitAction(playerFaction: Faction): GameAction {
     phase: "movement",
     isGameOver: false,
     currentPlayerId: 1,
+    map: []
   };
 
   return { type: "init", state };
@@ -31,6 +32,14 @@ export const createMoveAction = (unitId: number, to: Position): GameAction => ({
   unitId,
   to,
 });
+
+export function createAttackAction(attackerId: number, targetId: number) {
+  return {
+    type: "attack",
+    attackerId,
+    targetId
+  } as const;
+}
 
 export const createStartCombatAction = (): GameAction => ({ type: "startCombat" });
 export const createResolveCombatAction = (): GameAction => ({ type: "resolveCombat" });
