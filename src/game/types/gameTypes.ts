@@ -41,6 +41,7 @@ export type GameState = {
     units: Unit[];
     phase: GamePhase;
     currentPlayerId: number;
+    combatLog?: string[];
 }
 
 export type GameAction =

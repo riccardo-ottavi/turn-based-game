@@ -53,37 +53,40 @@ export function applyAction(state: GameState, action: GameAction): GameState {
 }
 
 function resolveCombat(state: GameState): GameState {
-  const damageMap: Record<number, number> = {}; 
+  let newUnits: Unit[] = [...state.units];
+  const log: string[] = [];
 
   const positionsMap: Record<string, Unit[]> = {};
-  state.units.forEach(u => {
+  newUnits.forEach(u => {
     const key = `${u.position.x},${u.position.y}`;
     if (!positionsMap[key]) positionsMap[key] = [];
     positionsMap[key].push(u);
   });
 
   Object.values(positionsMap).forEach(unitsInHex => {
-    if (unitsInHex.length < 2) return; 
+    if (unitsInHex.length < 2) return;
 
     unitsInHex.forEach(attacker => {
       unitsInHex.forEach(target => {
         if (attacker.ownerId !== target.ownerId && target.currentHp > 0) {
           const damage = Math.max(attacker.baseStats.attack - target.baseStats.defence, 0);
-          if (!damageMap[target.id]) damageMap[target.id] = 0;
-          damageMap[target.id] += damage;
+          newUnits = newUnits.map(u =>
+            u.id === target.id
+              ? { ...u, currentHp: Math.max(u.currentHp - damage, 0) }
+              : u
+          );
+
+          if (damage > 0) {
+            log.push(`${attacker.name} colpisce ${target.name} per ${damage} danni!`);
+          }
         }
       });
     });
   });
 
-  const newUnits = state.units
-    .map(u => ({
-      ...u,
-      currentHp: u.currentHp - (damageMap[u.id] || 0)
-    }))
-    .filter(u => u.currentHp > 0); 
+  newUnits = newUnits.filter(u => u.currentHp > 0);
 
-  return { ...state, units: newUnits };
+  return { ...state, units: newUnits, combatLog: log };
 }
 
 // Azioni

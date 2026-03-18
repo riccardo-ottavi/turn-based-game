@@ -25,8 +25,8 @@ export default function App() {
   });
 
   useEffect(() => {
-  dispatch(createInitAction("humans"));
-}, []);
+    dispatch(createInitAction("humans"));
+  }, []);
 
   const startCombat = () => {
     dispatch(createStartCombatAction());
@@ -149,6 +149,18 @@ export default function App() {
             </div>
           );
         })}
+      </div>
+      <div style={{ marginTop: "20px" }}>
+        <h2>Log Combattimento</h2>
+        {state.combatLog && state.combatLog.length > 0 ? (
+          <ul>
+            {state.combatLog.map((entry, i) => (
+              <li key={i}>{entry}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>Nessun combattimento ancora.</p>
+        )}
       </div>
     </div>
   );
