@@ -29,6 +29,7 @@ export type Unit = {
     };
     position: Position;
     ownerId: number;
+    hasMoved: boolean;
 }
 
 export type GamePhase = "movement" | "combat";

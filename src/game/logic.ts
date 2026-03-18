@@ -1,4 +1,5 @@
-import type { GameState, GameAction, Faction, Unit, Player, Position } from "./types/gameTypes";
+import type { GameState, GameAction, Unit, Position, Faction, Player } from "./types/gameTypes";
+import { createInitialArmy } from "./gameUtils";
 
 export function applyAction(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -7,103 +8,87 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       return action.state;
 
     case "move": {
-      if (state.phase !== "movement") return state;
-
       const unit = state.units.find(u => u.id === action.unitId);
       if (!unit) return state;
 
-      if (unit.ownerId !== state.currentPlayerId) {
-        console.warn("Non puoi muovere unità nemiche");
-        return state;
-      }
+      if (state.phase !== "movement") return state;
+      if (unit.ownerId !== state.currentPlayerId) return state;
+      if (unit.hasMoved) return state;
+
+      const distance =
+        Math.abs(unit.position.x - action.to.x) +
+        Math.abs(unit.position.y - action.to.y);
+
+      if (distance > unit.baseStats.speed || distance === 0) return state;
 
       const newUnits = state.units.map(u =>
-        u.id === action.unitId ? { ...u, position: action.to } : u
+        u.id === action.unitId
+          ? { ...u, position: { ...action.to }, hasMoved: true }
+          : u
       );
 
       return { ...state, units: newUnits };
     }
 
-    case "startCombat": {
+    case "startCombat":
       if (state.phase !== "movement") return state;
       return { ...state, phase: "combat" };
-    }
 
-    case "resolveCombat": {
+    case "resolveCombat":
       if (state.phase !== "combat") return state;
+      return resolveCombat(state);
 
-      let newUnits = [...state.units];
-
-      const positionsMap: Record<string, Unit[]> = {};
-
-      newUnits.forEach(u => {
-        const key = `${u.position.x},${u.position.y}`;
-        if (!positionsMap[key]) positionsMap[key] = [];
-        positionsMap[key].push(u);
-      });
-
-      Object.values(positionsMap).forEach(unitsInHex => {
-        if (unitsInHex.length < 2) return;
-
-        unitsInHex.forEach(attacker => {
-          unitsInHex.forEach(target => {
-            if (attacker.ownerId !== target.ownerId && target.currentHp > 0) {
-              const damage = Math.max(
-                attacker.baseStats.attack - target.baseStats.defence,
-                0
-              );
-
-              newUnits = newUnits.map(u =>
-                u.id === target.id
-                  ? { ...u, currentHp: Math.max(u.currentHp - damage, 0) }
-                  : u
-              );
-            }
-          });
-        });
-      });
-
-      newUnits = newUnits.filter(u => u.currentHp > 0);
-
-      return { ...state, units: newUnits };
-    }
-
-    case "endTurn": {
-      const nextPlayer = state.currentPlayerId === 1 ? 2 : 1;
-
+    case "endTurn":
       return {
         ...state,
-        currentPlayerId: nextPlayer,
+        currentPlayerId: state.currentPlayerId === 1 ? 2 : 1,
         turn: state.turn + 1,
-        phase: "movement"
+        phase: "movement",
+        units: state.units.map(u => ({ ...u, hasMoved: false }))
       };
-    }
 
     default:
       return state;
   }
 }
 
-export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
-  if (faction === "humans") {
-    return [
-      { id: ownerId * 10 + 1, name: "Swordsman", category: "melee", currentHp: 10, baseStats: { hp: 10, attack: 3, defence: 2, speed: 1 }, position: { x: 0, y: 0 }, ownerId },
-      { id: ownerId * 10 + 2, name: "Archer", category: "ranged", currentHp: 8, baseStats: { hp: 8, attack: 4, defence: 1, speed: 2 }, position: { x: 1, y: 0 }, ownerId },
-      { id: ownerId * 10 + 3, name: "Knight", category: "tank", currentHp: 15, baseStats: { hp: 15, attack: 2, defence: 4, speed: 1 }, position: { x: 0, y: 1 }, ownerId },
-    ];
-  } else {
- 
-    return [
-      { id: ownerId * 10 + 1, name: "Orc Warrior", category: "melee", currentHp: 12, baseStats: { hp: 12, attack: 4, defence: 1, speed: 1 }, position: { x: 5, y: 5 }, ownerId },
-      { id: ownerId * 10 + 2, name: "Orc Archer", category: "ranged", currentHp: 7, baseStats: { hp: 7, attack: 3, defence: 1, speed: 2 }, position: { x: 6, y: 5 }, ownerId },
-      { id: ownerId * 10 + 3, name: "Orc Chieftain", category: "tank", currentHp: 18, baseStats: { hp: 18, attack: 3, defence: 3, speed: 1 }, position: { x: 5, y: 6 }, ownerId },
-    ];
-  }
+function resolveCombat(state: GameState): GameState {
+  const damageMap: Record<number, number> = {}; 
+
+  const positionsMap: Record<string, Unit[]> = {};
+  state.units.forEach(u => {
+    const key = `${u.position.x},${u.position.y}`;
+    if (!positionsMap[key]) positionsMap[key] = [];
+    positionsMap[key].push(u);
+  });
+
+  Object.values(positionsMap).forEach(unitsInHex => {
+    if (unitsInHex.length < 2) return; 
+
+    unitsInHex.forEach(attacker => {
+      unitsInHex.forEach(target => {
+        if (attacker.ownerId !== target.ownerId && target.currentHp > 0) {
+          const damage = Math.max(attacker.baseStats.attack - target.baseStats.defence, 0);
+          if (!damageMap[target.id]) damageMap[target.id] = 0;
+          damageMap[target.id] += damage;
+        }
+      });
+    });
+  });
+
+  const newUnits = state.units
+    .map(u => ({
+      ...u,
+      currentHp: u.currentHp - (damageMap[u.id] || 0)
+    }))
+    .filter(u => u.currentHp > 0); 
+
+  return { ...state, units: newUnits };
 }
 
+// Azioni
 export function createInitAction(playerFaction: Faction): GameAction {
-  const enemyFaction: Faction =
-    playerFaction === "humans" ? "orcs" : "humans";
+  const enemyFaction: Faction = playerFaction === "humans" ? "orcs" : "humans";
 
   const newPlayers: Player[] = [
     { id: 1, name: "Player", faction: playerFaction, gold: 10, winPoints: 0 },
@@ -128,6 +113,10 @@ export function createInitAction(playerFaction: Faction): GameAction {
   };
 }
 
+export function createMoveAction(unitId: number, to: Position): GameAction {
+  return { type: "move", unitId, to };
+}
+
 export function createStartCombatAction(): GameAction {
   return { type: "startCombat" };
 }
@@ -140,13 +129,24 @@ export function createEndTurnAction(): GameAction {
   return { type: "endTurn" };
 }
 
-export function createMoveAction(
-  unitId: number,
-  to: Position
-): GameAction {
-  return {
-    type: "move",
-    unitId,
-    to
-  };
+export function getReachableCells(unit: Unit, gridSize: number) {
+  const cells: { x: number; y: number }[] = [];
+
+  for (let dx = -unit.baseStats.speed; dx <= unit.baseStats.speed; dx++) {
+    for (let dy = -unit.baseStats.speed; dy <= unit.baseStats.speed; dy++) {
+
+      if (Math.abs(dx) + Math.abs(dy) <= unit.baseStats.speed) {
+        const x = unit.position.x + dx;
+        const y = unit.position.y + dy;
+
+        if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
+          
+          if (x === unit.position.x && y === unit.position.y) continue;
+          cells.push({ x, y });
+        }
+      }
+    }
+  }
+
+  return cells;
 }
