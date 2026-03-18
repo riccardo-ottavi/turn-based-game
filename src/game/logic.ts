@@ -43,28 +43,30 @@ export function applyAction(state: GameState, action: GameAction): GameState {
   const attacker = state.units.find(u => u.id === action.attackerId);
   if (!attacker) return state;
 
-  if (attacker.hasAttacked) return state;
+  let newUnits = [...state.units];
+  newUnits.forEach(u => {
+    if (
+      u.ownerId !== attacker.ownerId &&
+      u.position.x === action.targetPosition.x &&
+      u.position.y === action.targetPosition.y
+    ) {
+      const distance =
+        Math.abs(attacker.position.x - u.position.x) +
+        Math.abs(attacker.position.y - u.position.y);
 
-  const newUnits = state.units
-    .map(u => {
-      if (u.id !== action.targetId) return u;
+      if (distance <= attacker.baseStats.range) {
+        const damage = Math.max(attacker.baseStats.attack - u.baseStats.defence, 0);
+        u.currentHp = Math.max(u.currentHp - damage, 0);
+      }
+    }
+  });
 
-      const damage = Math.max(
-        attacker.baseStats.attack - u.baseStats.defence,
-        0
-      );
+  newUnits = newUnits.filter(u => u.currentHp > 0);
 
-      return {
-        ...u,
-        currentHp: Math.max(u.currentHp - damage, 0)
-      };
-    })
-    .filter(u => u.currentHp > 0)
-    .map(u =>
-      u.id === attacker.id
-        ? { ...u, hasAttacked: true }
-        : u
-    );
+  // Imposta hasAttacked
+  newUnits = newUnits.map(u =>
+    u.id === attacker.id ? { ...u, hasAttacked: true } : u
+  );
 
   return { ...state, units: newUnits };
 }
@@ -266,38 +268,20 @@ export function getReachableCells(unit: Unit, map: MapCell[][]) {
   return cells;
 }
 
-export const getAttackableCells = (
-  unit: Unit,
-  map: MapCell[][],
-  units: Unit[]
-) => {
+export const getAttackableCells = (unit: Unit, units: Unit[], map: MapCell[][]) => {
   const cells: { x: number; y: number }[] = [];
-  const gridSize = map.length;
 
-  if (unit.baseStats.range <= 0) return cells;
+  units.forEach(u => {
+    if (u.ownerId !== unit.ownerId) {
+      const distance =
+        Math.abs(u.position.x - unit.position.x) +
+        Math.abs(u.position.y - unit.position.y);
 
-  for (let dx = -unit.baseStats.range; dx <= unit.baseStats.range; dx++) {
-    for (let dy = -unit.baseStats.range; dy <= unit.baseStats.range; dy++) {
-
-      if (Math.abs(dx) + Math.abs(dy) <= unit.baseStats.range) {
-        const x = unit.position.x + dx;
-        const y = unit.position.y + dy;
-
-        if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) continue;
-
-        const enemy = units.find(
-          u =>
-            u.position.x === x &&
-            u.position.y === y &&
-            u.ownerId !== unit.ownerId
-        );
-
-        if (!enemy) continue;
-
-        cells.push({ x, y });
+      if (distance <= unit.baseStats.range && distance > 0) {
+        cells.push({ x: u.position.x, y: u.position.y });
       }
     }
-  }
+  });
 
   return cells;
 };

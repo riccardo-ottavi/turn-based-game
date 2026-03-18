@@ -64,7 +64,7 @@ export default function App() {
     : [];
 
   const attackable = selectedUnit && !selectedUnit.hasAttacked
-  ? getAttackableCells(selectedUnit, state.map, state.units)
+  ? getAttackableCells(selectedUnit, state.units, state.map )
   : [];
 
 
