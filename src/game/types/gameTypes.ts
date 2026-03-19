@@ -34,7 +34,7 @@ export type Unit = {
   hasMoved: boolean;
 };
 
-export type GamePhase = "movement" | "combat";
+export type GamePhase = "deployment" | "movement" | "combat";
 
 export type GameState = {
     turn: number;
@@ -43,11 +43,12 @@ export type GameState = {
     units: Unit[];
     phase: GamePhase;
     currentPlayerId: number;
-    combatLog?: string[]
+    combatLog: string[]
     map: MapCell[][]
 }
 
 export type GameAction =
+    { type: "deploy", unitId: number, position : Position }
   | { type: "init"; state: GameState }
   | { type: "move"; unitId: number; to: Position }
   | { type: "startCombat" }

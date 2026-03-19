@@ -24,7 +24,7 @@ export function getSpawnCells(map: MapCell[][], side: "left" | "right", count: n
 }
 
 export function initUnits(map: MapCell[][]): Unit[] {
-  const p1Army = createInitialArmy(1, "humans");
+   const p1Army = createInitialArmy(1, "humans");
   const p2Army = createInitialArmy(2, "orcs");
 
   const p1Cells = getSpawnCells(map, "left", p1Army.length);

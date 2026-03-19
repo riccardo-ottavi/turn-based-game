@@ -21,7 +21,8 @@ export function createInitAction(): GameAction {
     turn: 1,
     phase: "movement",
     isGameOver: false,
-    currentPlayerId: 1
+    currentPlayerId: 1,
+    combatLog: []
   };
 
   return { type: "init", state };
@@ -41,4 +42,8 @@ export function createResolveCombatAction(): GameAction {
 
 export function createEndTurnAction(): GameAction {
   return { type: "endTurn" };
+}
+
+export function createDeployAction(unitId: number, position: Position): GameAction {
+  return { type: "deploy", unitId, position };
 }

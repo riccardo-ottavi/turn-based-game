@@ -7,10 +7,10 @@ export function handleAttack(state: GameState, action: AttackAction): GameState 
 
   const attacker = state.units.find(u => u.id === action.attackerId);
   if (!attacker || attacker.hasAttacked) return state;
-
   if (attacker.ownerId !== state.currentPlayerId) return state;
 
   let newUnits = state.units.map(u => ({ ...u }));
+  const log: string[] = state.combatLog ? [...state.combatLog] : [];
 
   newUnits.forEach(u => {
     if (
@@ -23,29 +23,28 @@ export function handleAttack(state: GameState, action: AttackAction): GameState 
         Math.abs(attacker.position.y - u.position.y);
 
       if (distance <= attacker.baseStats.range) {
-        const damage = Math.max(
-          attacker.baseStats.attack - u.baseStats.defence,
-          0
-        );
-
+        const damage = Math.max(attacker.baseStats.attack - u.baseStats.defence, 0);
         u.currentHp = Math.max(u.currentHp - damage, 0);
+
+        if (damage > 0) {
+          log.push(`${attacker.name} colpisce ${u.name} per ${damage} danni!`);
+        }
       }
     }
   });
 
   newUnits = newUnits
     .filter(u => u.currentHp > 0)
-    .map(u =>
-      u.id === attacker.id ? { ...u, hasAttacked: true } : u
-    );
+    .map(u => (u.id === attacker.id ? { ...u, hasAttacked: true } : u));
 
-  return { ...state, units: newUnits };
+  return { ...state, units: newUnits, combatLog: log };
 }
 
 export function resolveCombat(state: GameState): GameState {
   let newUnits: Unit[] = [...state.units];
   const log: string[] = [];
 
+  // Mappa posizioni
   const positionsMap: Record<string, Unit[]> = {};
   newUnits.forEach(u => {
     const key = `${u.position.x},${u.position.y}`;
@@ -54,20 +53,22 @@ export function resolveCombat(state: GameState): GameState {
   });
 
   Object.values(positionsMap).forEach(unitsInHex => {
-    if (unitsInHex.length < 2) return;
-
     unitsInHex.forEach(attacker => {
-      unitsInHex.forEach(target => {
-        if (attacker.ownerId !== target.ownerId && target.currentHp > 0) {
-          const damage = Math.max(attacker.baseStats.attack - target.baseStats.defence, 0);
-          newUnits = newUnits.map(u =>
-            u.id === target.id
-              ? { ...u, currentHp: Math.max(u.currentHp - damage, 0) }
-              : u
-          );
+      if (attacker.currentHp <= 0) return;
 
-          if (damage > 0) {
-            log.push(`${attacker.name} colpisce ${target.name} per ${damage} danni!`);
+      newUnits.forEach(target => {
+        if (attacker.ownerId !== target.ownerId && target.currentHp > 0) {
+          const distance =
+            Math.abs(attacker.position.x - target.position.x) +
+            Math.abs(attacker.position.y - target.position.y);
+
+          if (distance <= attacker.baseStats.range && distance > 0) {
+            const damage = Math.max(attacker.baseStats.attack - target.baseStats.defence, 0);
+            target.currentHp = Math.max(target.currentHp - damage, 0);
+
+            if (damage > 0) {
+              log.push(`${attacker.name} colpisce ${target.name} per ${damage} danni!`);
+            }
           }
         }
       });

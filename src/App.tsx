@@ -16,6 +16,7 @@ export default function App() {
     map: [],
     units: [],
     players: [],
+    combatLog: [],
     turn: 1,
     phase: "movement",
     isGameOver: false,
@@ -57,28 +58,30 @@ export default function App() {
     : [];
 
   const attackable =
-  selectedUnit &&
-  state.phase === "combat" &&
-  !selectedUnit.hasAttacked
-    ? getAttackableCells(selectedUnit, state.units)
-    : [];
+    selectedUnit &&
+      state.phase === "combat" &&
+      !selectedUnit.hasAttacked
+      ? getAttackableCells(selectedUnit, state.units)
+      : [];
 
 
   return (
     <div style={{ display: "flex", gap: "20px" }}>
       <div>
-        <h1>Turno: {state.turn}</h1>
-        <h2>Fase: {state.phase}</h2>
-        <h3>Giocatore attivo: {state.currentPlayerId}</h3>
+        <div className="info-displayer">
+          <h1>Turno: {state.turn}</h1>
+          <h2>Fase: {state.phase}</h2>
+          <h3>Giocatore attivo: {state.currentPlayerId}</h3>
 
-        <h3>
-          {selectedUnitId
-            ? "Scegli: muovi (giallo) o attacca (rosso)"
-            : "Seleziona un'unità"}
-        </h3>
+          <h3>
+            {selectedUnitId
+              ? "Scegli: muovi (giallo) o attacca (rosso)"
+              : "Seleziona un'unità"}
+          </h3>
+        </div>
 
         <hr />
-            
+
         <h2>Unità</h2>
         {state.units.map(u => (
           <div key={u.id} style={{ marginBottom: "10px" }}>
@@ -99,6 +102,15 @@ export default function App() {
 
         <hr />
 
+        <h2>Combat Log</h2>
+        <div style={{ maxHeight: "150px", overflowY: "auto", background: "#eee", padding: "5px" }}>
+          {(state.combatLog || []).map((msg, i) => (
+            <div key={i}>{msg}</div>
+          ))}
+        </div>
+
+        <hr />
+
         {state.phase === "movement" && (
           <button onClick={startCombat}>
             Fine Movimento → Combattimento
@@ -110,6 +122,8 @@ export default function App() {
             Fine Combattimento → Fine Turno
           </button>
         )}
+        
+        
       </div>
 
       <div
@@ -143,57 +157,57 @@ export default function App() {
                 border: "1px solid black",
                 position: "relative",
                 backgroundColor: isAttackable
-                  ? "#f08080"   
+                  ? "#f08080"
                   : isReachable
-                    ? "#f0f080" 
+                    ? "#f0f080"
                     : getCellColor(cell),
               }}
               onClick={() => {
-  const clickedUnit = unitsInCell[0];
+                const clickedUnit = unitsInCell[0];
 
-  if (
-    clickedUnit &&
-    clickedUnit.ownerId === state.currentPlayerId
-  ) {
-    setSelectedUnitId(clickedUnit.id);
-    return;
-  }
+                if (
+                  clickedUnit &&
+                  clickedUnit.ownerId === state.currentPlayerId
+                ) {
+                  setSelectedUnitId(clickedUnit.id);
+                  return;
+                }
 
-  if (!selectedUnit) return;
+                if (!selectedUnit) return;
 
 
-  if (isAttackable) {
-    const targetUnit = unitsInCell.find(
-      u => u.ownerId !== selectedUnit.ownerId
-    );
+                if (isAttackable) {
+                  const targetUnit = unitsInCell.find(
+                    u => u.ownerId !== selectedUnit.ownerId
+                  );
 
-    if (!targetUnit) return;
+                  if (!targetUnit) return;
 
-    dispatch({
-      type: "attack",
-      attackerId: selectedUnit.id,
-      targetId: targetUnit.id,
-      targetPosition: { x: cell.x, y: cell.y }
-    });
+                  dispatch({
+                    type: "attack",
+                    attackerId: selectedUnit.id,
+                    targetId: targetUnit.id,
+                    targetPosition: { x: cell.x, y: cell.y }
+                  });
 
-    setSelectedUnitId(null);
-    return;
-  }
+                  setSelectedUnitId(null);
+                  return;
+                }
 
-  if (isReachable && !selectedUnit.hasMoved) {
-    dispatch(
-      createMoveAction(selectedUnit.id, {
-        x: cell.x,
-        y: cell.y
-      })
-    );
+                if (isReachable && !selectedUnit.hasMoved) {
+                  dispatch(
+                    createMoveAction(selectedUnit.id, {
+                      x: cell.x,
+                      y: cell.y
+                    })
+                  );
 
-    setSelectedUnitId(null);
-    return;
-  }
+                  setSelectedUnitId(null);
+                  return;
+                }
 
-  setSelectedUnitId(null);
-}}
+                setSelectedUnitId(null);
+              }}
             >
               {unitsInCell.map((u, i) => (
                 <div
