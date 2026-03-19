@@ -4,7 +4,17 @@ import { getReachableCells } from "./game/logic/movement";
 import { applyAction } from "./game/logic/reducer";
 import { getAttackableCells } from "./game/logic/combat";
 import { createInitAction, createStartCombatAction, createResolveCombatAction, createEndTurnAction, createMoveAction } from "./game/actions/actionCreators";
+import grass from "./assets/tile-grass.png";
+import tree from "./assets/tile-tree.png";
+import wall from "./assets/tile-wall.png";
+import chest from "./assets/tile-chest.png";
 
+const tileMap: Record<string, string> = {
+  grass,
+  tree,
+  wall,
+  chest
+};
 
 const GRID_SIZE = 8;
 const CELL_SIZE = 60;
@@ -85,16 +95,18 @@ export default function App() {
         <h2>Unità</h2>
         {state.units.map(u => (
           <div key={u.id} style={{ marginBottom: "10px" }}>
-            <strong>{u.name}</strong> (Player {u.ownerId})
-            <br />
-            HP: {u.currentHp}
-            <br />
-            Pos: ({u.position.x}, {u.position.y})
-            <br />
-            Move: {u.baseStats.speed}
-            <br />
-            Range: {u.baseStats.range}
+            <div className="unit-card">
+              <strong>{u.name}</strong> (Player {u.ownerId})
+              <br />
+              HP: {u.currentHp}
+              <br />
+              Pos: ({u.position.x}, {u.position.y})
+              <br />
+              Move: {u.baseStats.speed}
+              <br />
+              Range: {u.baseStats.range}
 
+            </div>
             {state.phase === "movement" &&
               u.ownerId === state.currentPlayerId}
           </div>
@@ -122,8 +134,8 @@ export default function App() {
             Fine Combattimento → Fine Turno
           </button>
         )}
-        
-        
+
+
       </div>
 
       <div
@@ -156,11 +168,8 @@ export default function App() {
                 height: CELL_SIZE,
                 border: "1px solid black",
                 position: "relative",
-                backgroundColor: isAttackable
-                  ? "#f08080"
-                  : isReachable
-                    ? "#f0f080"
-                    : getCellColor(cell),
+                backgroundImage: `url(${tileMap[cell.type]})`,
+                backgroundSize: "cover"
               }}
               onClick={() => {
                 const clickedUnit = unitsInCell[0];
