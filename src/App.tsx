@@ -1,15 +1,10 @@
 import { useReducer, useEffect, useState } from "react";
 import type { Unit, MapCell } from "./game/types/gameTypes";
-import { getReachableCells, getAttackableCells } from "./game/logic";
+import { getReachableCells } from "./game/logic/movement";
+import { applyAction } from "./game/logic/reducer";
+import { getAttackableCells } from "./game/logic/combat";
+import { createInitAction, createStartCombatAction, createResolveCombatAction, createEndTurnAction, createMoveAction } from "./game/actions/actionCreators";
 
-import {
-  applyAction,
-  createInitAction,
-  createMoveAction,
-  createStartCombatAction,
-  createResolveCombatAction,
-  createEndTurnAction
-} from "./game/logic";
 
 const GRID_SIZE = 8;
 const CELL_SIZE = 60;
@@ -38,7 +33,6 @@ export default function App() {
 
   const endTurn = () => dispatch(createEndTurnAction());
 
-  // Mappa unità per cella
   const unitsMap: Record<string, Unit[]> = {};
   state.units.forEach(u => {
     const key = `${u.position.x},${u.position.y}`;
@@ -46,7 +40,6 @@ export default function App() {
     unitsMap[key].push(u);
   });
 
-  // Colori celle
   const getCellColor = (cell: MapCell) => {
     switch (cell.type) {
       case "grass": return "#a0e0a0";
@@ -73,7 +66,6 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", gap: "20px" }}>
-      {/* UI LATERALE */}
       <div>
         <h1>Turno: {state.turn}</h1>
         <h2>Fase: {state.phase}</h2>
@@ -120,7 +112,6 @@ export default function App() {
         )}
       </div>
 
-      {/* MAPPA */}
       <div
         style={{
           display: "grid",
@@ -152,15 +143,14 @@ export default function App() {
                 border: "1px solid black",
                 position: "relative",
                 backgroundColor: isAttackable
-                  ? "#f08080"   // ROSSO → attacco
+                  ? "#f08080"   
                   : isReachable
-                    ? "#f0f080" // GIALLO → movimento
+                    ? "#f0f080" 
                     : getCellColor(cell),
               }}
               onClick={() => {
   const clickedUnit = unitsInCell[0];
 
-  // 1️⃣ SELEZIONE UNITÀ
   if (
     clickedUnit &&
     clickedUnit.ownerId === state.currentPlayerId
@@ -169,10 +159,9 @@ export default function App() {
     return;
   }
 
-  // Se non ho selezionato nulla → stop
   if (!selectedUnit) return;
 
-  // 2️⃣ ATTACCO
+
   if (isAttackable) {
     const targetUnit = unitsInCell.find(
       u => u.ownerId !== selectedUnit.ownerId
@@ -191,7 +180,6 @@ export default function App() {
     return;
   }
 
-  // 3️⃣ MOVIMENTO
   if (isReachable && !selectedUnit.hasMoved) {
     dispatch(
       createMoveAction(selectedUnit.id, {
@@ -204,7 +192,6 @@ export default function App() {
     return;
   }
 
-  // 4️⃣ CLICK VUOTO → DESELEZIONA
   setSelectedUnitId(null);
 }}
             >

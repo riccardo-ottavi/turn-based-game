@@ -9,7 +9,7 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
         category: "melee",
         currentHp: 10,
         baseStats: { hp: 10, attack: 3, defence: 2, speed: 1, range: 0 },
-        position: { x: 0, y: 0 }, // placeholder
+        position: { x: 0, y: 0 },  
         ownerId,
         hasMoved: false,
         hasAttacked: false
@@ -75,3 +75,4 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
     },
   ];
 }
+
