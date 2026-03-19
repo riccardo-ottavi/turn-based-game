@@ -215,7 +215,7 @@ export function getReachableCells(unit: Unit, map: MapCell[][]) {
   return cells;
 }
 
-export const getAttackableCells = (unit: Unit, units: Unit[], map: MapCell[][]) => {
+export const getAttackableCells = (unit: Unit, units: Unit[]) => {
   const cells: { x: number; y: number }[] = [];
 
   units.forEach(u => {
@@ -266,8 +266,12 @@ function handleMove(state: GameState, action: MoveAction): GameState {
 }
 
 function handleAttack(state: GameState, action: AttackAction): GameState {
+  if (state.phase !== "combat") return state;
+
   const attacker = state.units.find(u => u.id === action.attackerId);
   if (!attacker || attacker.hasAttacked) return state;
+
+  if (attacker.ownerId !== state.currentPlayerId) return state;
 
   let newUnits = state.units.map(u => ({ ...u }));
 

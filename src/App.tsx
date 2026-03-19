@@ -63,9 +63,12 @@ export default function App() {
     ? getReachableCells(selectedUnit, state.map)
     : [];
 
-  const attackable = selectedUnit && !selectedUnit.hasAttacked
-  ? getAttackableCells(selectedUnit, state.units, state.map )
-  : [];
+  const attackable =
+  selectedUnit &&
+  state.phase === "combat" &&
+  !selectedUnit.hasAttacked
+    ? getAttackableCells(selectedUnit, state.units)
+    : [];
 
 
   return (
