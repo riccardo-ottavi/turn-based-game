@@ -1,5 +1,7 @@
 import { createInitialArmy } from "./gameUtils";
 import type { GameState, GameAction, Unit, Position, MapCell, Player } from "./types/gameTypes";
+type MoveAction = Extract<GameAction, { type: "move" }>;
+type AttackAction = Extract<GameAction, { type: "attack" }>;
 
 
 export function applyAction(state: GameState, action: GameAction): GameState {
@@ -8,68 +10,11 @@ export function applyAction(state: GameState, action: GameAction): GameState {
     case "init":
       return action.state;
 
-    case "move": {
-      const unit = state.units.find(u => u.id === action.unitId);
-      if (!unit) return state;
+    case "move":
+      return handleMove(state, action);
 
-      if (state.phase !== "movement") return state;
-      if (unit.ownerId !== state.currentPlayerId) return state;
-      if (unit.hasMoved) return state;
-
-      const distance =
-        Math.abs(unit.position.x - action.to.x) +
-        Math.abs(unit.position.y - action.to.y);
-
-      if (distance > unit.baseStats.speed || distance === 0) return state;
-
-      const targetCell = state.map[action.to.y][action.to.x];
-      if (!targetCell.walkable) return state;
-
-      const occupied = state.units.some(
-        u => u.position.x === action.to.x && u.position.y === action.to.y
-      );
-      if (occupied) return state;
-
-      const newUnits = state.units.map(u =>
-        u.id === action.unitId
-          ? { ...u, position: { ...action.to }, hasMoved: true }
-          : u
-      );
-
-      return { ...state, units: newUnits };
-    }
-
-    case "attack": {
-  const attacker = state.units.find(u => u.id === action.attackerId);
-  if (!attacker) return state;
-
-  let newUnits = [...state.units];
-  newUnits.forEach(u => {
-    if (
-      u.ownerId !== attacker.ownerId &&
-      u.position.x === action.targetPosition.x &&
-      u.position.y === action.targetPosition.y
-    ) {
-      const distance =
-        Math.abs(attacker.position.x - u.position.x) +
-        Math.abs(attacker.position.y - u.position.y);
-
-      if (distance <= attacker.baseStats.range) {
-        const damage = Math.max(attacker.baseStats.attack - u.baseStats.defence, 0);
-        u.currentHp = Math.max(u.currentHp - damage, 0);
-      }
-    }
-  });
-
-  newUnits = newUnits.filter(u => u.currentHp > 0);
-
-  // Imposta hasAttacked
-  newUnits = newUnits.map(u =>
-    u.id === attacker.id ? { ...u, hasAttacked: true } : u
-  );
-
-  return { ...state, units: newUnits };
-}
+    case "attack":
+      return handleAttack(state, action);
 
     case "startCombat":
       if (state.phase !== "movement") return state;
@@ -79,15 +24,17 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       if (state.phase !== "combat") return state;
       return resolveCombat(state);
 
-
-
     case "endTurn":
       return {
         ...state,
         currentPlayerId: state.currentPlayerId === 1 ? 2 : 1,
         turn: state.turn + 1,
         phase: "movement",
-        units: state.units.map(u => ({ ...u, hasMoved: false, hasAttacked: false }))
+        units: state.units.map(u => ({
+          ...u,
+          hasMoved: false,
+          hasAttacked: false
+        }))
       };
 
     default:
@@ -285,3 +232,71 @@ export const getAttackableCells = (unit: Unit, units: Unit[], map: MapCell[][]) 
 
   return cells;
 };
+
+
+function handleMove(state: GameState, action: MoveAction): GameState {
+  const unit = state.units.find(u => u.id === action.unitId);
+  if (!unit) return state;
+
+  if (state.phase !== "movement") return state;
+  if (unit.ownerId !== state.currentPlayerId) return state;
+  if (unit.hasMoved) return state;
+
+  const distance =
+    Math.abs(unit.position.x - action.to.x) +
+    Math.abs(unit.position.y - action.to.y);
+
+  if (distance > unit.baseStats.speed || distance === 0) return state;
+
+  const targetCell = state.map[action.to.y][action.to.x];
+  if (!targetCell.walkable) return state;
+
+  const occupied = state.units.some(
+    u => u.position.x === action.to.x && u.position.y === action.to.y
+  );
+  if (occupied) return state;
+
+  const newUnits = state.units.map(u =>
+    u.id === unit.id
+      ? { ...u, position: action.to, hasMoved: true }
+      : u
+  );
+
+  return { ...state, units: newUnits };
+}
+
+function handleAttack(state: GameState, action: AttackAction): GameState {
+  const attacker = state.units.find(u => u.id === action.attackerId);
+  if (!attacker || attacker.hasAttacked) return state;
+
+  let newUnits = state.units.map(u => ({ ...u }));
+
+  newUnits.forEach(u => {
+    if (
+      u.ownerId !== attacker.ownerId &&
+      u.position.x === action.targetPosition.x &&
+      u.position.y === action.targetPosition.y
+    ) {
+      const distance =
+        Math.abs(attacker.position.x - u.position.x) +
+        Math.abs(attacker.position.y - u.position.y);
+
+      if (distance <= attacker.baseStats.range) {
+        const damage = Math.max(
+          attacker.baseStats.attack - u.baseStats.defence,
+          0
+        );
+
+        u.currentHp = Math.max(u.currentHp - damage, 0);
+      }
+    }
+  });
+
+  newUnits = newUnits
+    .filter(u => u.currentHp > 0)
+    .map(u =>
+      u.id === attacker.id ? { ...u, hasAttacked: true } : u
+    );
+
+  return { ...state, units: newUnits };
+}
