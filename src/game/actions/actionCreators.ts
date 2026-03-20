@@ -23,7 +23,8 @@ export function createInitAction(): GameAction {
     isGameOver: false,
     currentPlayerId: 1,
     combatLog: [],
-    usedChests: {} as Record<string, boolean>
+    usedChests: {} as Record<string, boolean>,
+    winnerId: 0
   };
 
   return { type: "init", state };

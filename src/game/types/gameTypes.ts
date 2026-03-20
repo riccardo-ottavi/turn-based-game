@@ -38,6 +38,7 @@ export type Unit = {
 export type GamePhase = "deployment" | "movement" | "combat";
 
 export type GameState = {
+    winnerId: number;
     turn: number;
     isGameOver: boolean;
     players: Player[];

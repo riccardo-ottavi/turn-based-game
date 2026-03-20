@@ -38,7 +38,8 @@ export default function App() {
     phase: "movement",
     isGameOver: false,
     currentPlayerId: 1,
-    usedChests: {}
+    usedChests: {},
+    winnerId: 0
   });
 
   const unitImages: Record<string, string> = {
@@ -108,6 +109,9 @@ export default function App() {
             ))}
           </div>
         </div>
+        {state.isGameOver && (
+  <h1>Game Over! Ha vinto il giocatore {state.winnerId}</h1>
+)}
       </div>
 
       <div className="army-container">

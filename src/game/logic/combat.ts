@@ -3,6 +3,7 @@ type AttackAction = Extract<GameAction, { type: "attack" }>;
 
 
 export function handleAttack(state: GameState, action: AttackAction): GameState {
+  if (state.isGameOver) return state;
   if (state.phase !== "combat") return state;
 
   const attacker = state.units.find(u => u.id === action.attackerId);
@@ -11,8 +12,7 @@ export function handleAttack(state: GameState, action: AttackAction): GameState 
 
   let newUnits = state.units.map(u => ({ ...u }));
   let kills = 0;
-
-  const log: string[] = state.combatLog ? [...state.combatLog] : [];
+  const log: string[] = [...state.combatLog];
 
   newUnits.forEach(u => {
     if (
@@ -26,54 +26,46 @@ export function handleAttack(state: GameState, action: AttackAction): GameState 
 
       if (distance <= attacker.baseStats.range) {
         const damage = Math.max(attacker.baseStats.attack - u.baseStats.defence, 0);
-
         const prevHp = u.currentHp;
         u.currentHp = Math.max(u.currentHp - damage, 0);
 
-        if (prevHp > 0 && u.currentHp === 0) {
-          kills++;
-        }
-
-        if (damage > 0) {
-          log.push(`${attacker.name} colpisce ${u.name} per ${damage} danni!`);
-        }
+        if (prevHp > 0 && u.currentHp === 0) kills++;
+        if (damage > 0) log.push(`${attacker.name} colpisce ${u.name} per ${damage} danni!`);
       }
     }
   });
 
   const newPlayers = kills > 0
     ? state.players.map(p =>
-      p.id === attacker.ownerId
-        ? { ...p, winPoints: p.winPoints + kills }
-        : p
-    )
+        p.id === attacker.ownerId ? { ...p, winPoints: p.winPoints + kills } : p
+      )
     : state.players;
 
-  newUnits = newUnits
-    .filter(u => u.currentHp > 0)
-    .map(u => (u.id === attacker.id ? { ...u, hasAttacked: true } : u));
+  newUnits = newUnits.map(u => (u.id === attacker.id ? { ...u, hasAttacked: true } : u))
+                     .filter(u => u.currentHp > 0);
 
-  return {
-    ...state,
-    units: newUnits,
-    players: newPlayers,
-    combatLog: log
-  };
+  const winner = newPlayers.find(p => p.winPoints >= 3);
+  if (winner) {
+    return {
+      ...state,
+      units: newUnits,
+      players: newPlayers,
+      combatLog: log,
+      isGameOver: true,
+      winnerId: winner.id
+    };
+  }
+
+  return { ...state, units: newUnits, players: newPlayers, combatLog: log };
 }
 
 export function resolveCombat(state: GameState): GameState {
+  if (state.isGameOver) return state;
   if (state.phase !== "combat") return state;
 
   let newUnits: Unit[] = state.units.map(u => ({ ...u }));
   const log: string[] = [...state.combatLog];
   const killsPerPlayer: Record<number, number> = {};
-
-  const positionsMap: Record<string, Unit[]> = {};
-  newUnits.forEach(u => {
-    const key = `${u.position.x},${u.position.y}`;
-    if (!positionsMap[key]) positionsMap[key] = [];
-    positionsMap[key].push(u);
-  });
 
   newUnits.forEach(attacker => {
     if (attacker.currentHp <= 0) return;
@@ -89,9 +81,7 @@ export function resolveCombat(state: GameState): GameState {
           const prevHp = target.currentHp;
           target.currentHp = Math.max(target.currentHp - damage, 0);
 
-          if (damage > 0) {
-            log.push(`${attacker.name} colpisce ${target.name} per ${damage} danni!`);
-          }
+          if (damage > 0) log.push(`${attacker.name} colpisce ${target.name} per ${damage} danni!`);
 
           if (prevHp > 0 && target.currentHp === 0) {
             killsPerPlayer[attacker.ownerId] = (killsPerPlayer[attacker.ownerId] || 0) + 1;
@@ -107,6 +97,11 @@ export function resolveCombat(state: GameState): GameState {
   }));
 
   newUnits = newUnits.filter(u => u.currentHp > 0);
+
+  const winner = newPlayers.find(p => p.winPoints >= 3);
+  if (winner) {
+    return { ...state, units: newUnits, players: newPlayers, combatLog: log, isGameOver: true, winnerId: winner.id };
+  }
 
   return { ...state, units: newUnits, players: newPlayers, combatLog: log };
 }
