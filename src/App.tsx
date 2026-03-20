@@ -17,6 +17,8 @@ import orcSwordsman from "./assets/orc-swordsman-icon.webp";
 import orcArcher from "./assets/orc-archer-icon.webp"
 import MapGrid from "./components/MapGrid";
 import InfoPanel from "./components/InfoPanel";
+import ArmyPanel from "./components/ArmyPanel";
+import Controls from "./components/Controls";
 
 const tileMap: Record<string, string> = {
   grass,
@@ -118,39 +120,21 @@ export default function App() {
 
   return (
     <div className="container">
-      
+
       <InfoPanel state={state} selectedUnitId={selectedUnitId} />
 
-      <div className="army-container">
-        {state.units.map(u => (
-          <div key={u.id} className="unit-card">
-            <strong>{u.name}</strong>
-            <img src={unitImages[u.image]} alt="" />
-            HP: {u.currentHp}
-            <br />
-            Pos: ({u.position.x}, {u.position.y})
-            <br />
-            Move: {u.baseStats.speed}
-            <br />
-            Range: {u.baseStats.range}
-            <br />
-            {state.phase === "movement" &&
-              u.ownerId === state.currentPlayerId}
-          </div>
-        ))}
-      </div>
+      <ArmyPanel
+        units={state.units}
+        currentPlayerId={state.currentPlayerId}
+        phase={state.phase}
+        unitImages={unitImages}
+      />
 
-      {state.phase === "movement" && (
-        <button onClick={startCombat}>
-          Fine Movimento → Combattimento
-        </button>
-      )}
-
-      {state.phase === "combat" && (
-        <button onClick={endTurn}>
-          Fine Combattimento → Fine Turno
-        </button>
-      )}
+      <Controls
+        phase={state.phase}
+        onStartCombat={startCombat}
+        onEndTurn={endTurn}
+      />
 
       <MapGrid
         map={state.map}
