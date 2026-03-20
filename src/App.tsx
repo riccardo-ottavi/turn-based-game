@@ -15,6 +15,7 @@ import humanSwordsman from "./assets/human-swordsman-icon.png";
 import orcCommander from "./assets/orc-commander-icon.webp";
 import orcSwordsman from "./assets/orc-swordsman-icon.webp";
 import orcArcher from "./assets/orc-archer-icon.webp"
+import MapGrid from "./components/MapGrid";
 
 const tileMap: Record<string, string> = {
   grass,
@@ -22,9 +23,6 @@ const tileMap: Record<string, string> = {
   wall,
   chest
 };
-
-const GRID_SIZE = 8;
-const CELL_SIZE = 60;
 
 export default function App() {
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
@@ -84,7 +82,7 @@ export default function App() {
 
   const handleCellClick = (cell: MapCell, unitsInCell: Unit[]) => {
     if (!selectedUnitId) {
-      
+
       const clickedUnit = unitsInCell.find(u => u.ownerId === state.currentPlayerId);
       if (clickedUnit) setSelectedUnitId(clickedUnit.id);
       return;
@@ -179,57 +177,14 @@ export default function App() {
         </button>
       )}
 
-      <div
-        style={{
-          gridTemplateColumns: `repeat(${GRID_SIZE}, ${CELL_SIZE}px)`,
-          gridTemplateRows: `repeat(${GRID_SIZE}, ${CELL_SIZE}px)`,
-        }}
-        className="map"
-      >
-        {state.map.flat().map((cell: MapCell) => {
-          const key = `${cell.x},${cell.y}`;
-          const unitsInCell = unitsMap[key] || [];
-          const isSelected = unitsInCell.some(u => u.id === selectedUnitId);
-
-          return (
-            <div
-              key={key}
-              style={{
-                width: CELL_SIZE,
-                height: CELL_SIZE,
-                border: "1px solid black",
-                position: "relative",
-                backgroundImage: `url(${tileMap[cell.type]})`,
-                backgroundSize: "cover",
-              }}
-              onClick={() => handleCellClick(cell, unitsInCell)}
-            >
-              {unitsInCell.map((u, i) => (
-                <div className="map-unit-cell" key={u.id}>
-                  <div
-                    style={{
-                      width: "90%",
-                      height: "20px",
-                      backgroundColor: u.ownerId === 1 ? "blue" : "red",
-                      color: "white",
-                      fontSize: "12px",
-                      textAlign: "center",
-                      borderRadius: "3px",
-                      position: "absolute",
-                      top: `${i * 22}px`,
-                      left: "5%",
-                      border: isSelected ? "3px solid yellow" : "1px solid black",
-                    }}
-                  >
-                    {u.name[0]}:{u.currentHp}
-                  </div>
-                  <img src={unitImages[u.image]} alt={u.name} />
-                </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>
+      <MapGrid
+        map={state.map}
+        unitsMap={unitsMap}
+        selectedUnitId={selectedUnitId}
+        tileMap={tileMap}
+        unitImages={unitImages}
+        onCellClick={handleCellClick}
+      />
     </div>
   );
 }
