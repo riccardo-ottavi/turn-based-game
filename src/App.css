@@ -14,6 +14,15 @@
 body{
   background-color: #e2bc70;
   font-family: "WarcraftFont", sans-serif;
+  background-image: url("./assets/bg.png");
+  background-size: contain;
+}
+
+.log-text{
+  overflow-Y: auto;
+  background: #eee;
+  padding: 5px;
+  min-height: 455px;
 }
 
 .container{
@@ -28,7 +37,7 @@ body{
   border: black solid 1px;
   min-height: 500px;
   padding: 10px;
-  background-color: rgb(255, 252, 234);
+  background-color: rgb(255, 247, 206);
 }
 
 button{
@@ -36,7 +45,7 @@ button{
 }
 
 .combat-log{
-  width: 200px;
+  width: 100%;
 }
 
 .map{
@@ -58,7 +67,7 @@ button{
   flex-direction: column;
   align-items: center;
   justify-content: space-around;
-  background-color: rgb(255, 252, 234);
+  background-color: rgb(255, 247, 206);
 
 }
 
