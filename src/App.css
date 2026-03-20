@@ -3,3 +3,28 @@
   padding: 0;
   box-sizing: border-box;
 }
+
+.container{
+  display: flex;
+  gap: 20px; 
+}
+
+.info-displayer{
+  width: 300px;
+  background-color: aqua;
+}
+
+.units-infos{
+  width: 300px;
+}
+
+.combat-log{
+  width: 300px;
+}
+
+.map{
+  gap: 1px;
+  display: grid;
+  width: 40vw;
+}
+

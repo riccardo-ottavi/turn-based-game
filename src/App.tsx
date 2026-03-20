@@ -8,6 +8,7 @@ import grass from "./assets/tile-grass.png";
 import tree from "./assets/tile-tree.png";
 import wall from "./assets/tile-wall.png";
 import chest from "./assets/tile-chest.png";
+import './App.css'
 
 const tileMap: Record<string, string> = {
   grass,
@@ -51,16 +52,6 @@ export default function App() {
     unitsMap[key].push(u);
   });
 
-  const getCellColor = (cell: MapCell) => {
-    switch (cell.type) {
-      case "grass": return "#a0e0a0";
-      case "tree": return "#228B22";
-      case "wall": return "#555555";
-      case "chest": return "#FFD700";
-      default: return "#eee";
-    }
-  };
-
   const selectedUnit = state.units.find(u => u.id === selectedUnitId);
 
   const reachable = selectedUnit && !selectedUnit.hasMoved
@@ -76,8 +67,7 @@ export default function App() {
 
 
   return (
-    <div style={{ display: "flex", gap: "20px" }}>
-      <div>
+    <div className="container">
         <div className="info-displayer">
           <h1>Turno: {state.turn}</h1>
           <h2>Fase: {state.phase}</h2>
@@ -90,10 +80,9 @@ export default function App() {
           </h3>
         </div>
 
-        <hr />
-
-        <h2>Unità</h2>
-        {state.units.map(u => (
+        <div className="units-infos">
+          <h2>Unità</h2>
+          {state.units.map(u => (
           <div key={u.id} style={{ marginBottom: "10px" }}>
             <div className="unit-card">
               <strong>{u.name}</strong> (Player {u.ownerId})
@@ -111,17 +100,15 @@ export default function App() {
               u.ownerId === state.currentPlayerId}
           </div>
         ))}
-
-        <hr />
-
-        <h2>Combat Log</h2>
+        </div>
+        <div className="combat-log">
+          <h2>Combat Log</h2>
         <div style={{ maxHeight: "150px", overflowY: "auto", background: "#eee", padding: "5px" }}>
           {(state.combatLog || []).map((msg, i) => (
             <div key={i}>{msg}</div>
           ))}
         </div>
-
-        <hr />
+        </div>
 
         {state.phase === "movement" && (
           <button onClick={startCombat}>
@@ -135,16 +122,12 @@ export default function App() {
           </button>
         )}
 
-
-      </div>
-
       <div
         style={{
-          display: "grid",
           gridTemplateColumns: `repeat(${GRID_SIZE}, ${CELL_SIZE}px)`,
           gridTemplateRows: `repeat(${GRID_SIZE}, ${CELL_SIZE}px)`,
-          gap: "1px",
-        }}
+        }} 
+        className="map"
       >
         {state.map.flat().map((cell: MapCell) => {
           const key = `${cell.x},${cell.y}`;
@@ -225,7 +208,7 @@ export default function App() {
                     width: "90%",
                     height: "20px",
                     backgroundColor:
-                      u.ownerId === 1 ? "blue" : "red",
+                    u.ownerId === 1 ? "blue" : "red",
                     color: "white",
                     fontSize: "12px",
                     textAlign: "center",
