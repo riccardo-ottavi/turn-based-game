@@ -10,7 +10,7 @@ type Props = {
 };
 
 const GRID_SIZE = 8;
-const CELL_SIZE = 60;
+const CELL_SIZE = 58;
 
 export default function MapGrid({
   map,

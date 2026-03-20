@@ -29,6 +29,8 @@ export function handleMove(state: GameState, action: MoveAction): GameState {
   let newPlayers = state.players;
   let newUsedChests = { ...state.usedChests };
 
+  const log: string[] = [...state.combatLog];
+
   if (targetCell.type === "chest" && !state.usedChests[key]) {
     newUsedChests[key] = true;
     newPlayers = state.players.map(p =>
@@ -40,6 +42,8 @@ export function handleMove(state: GameState, action: MoveAction): GameState {
     u.id === unit.id ? { ...u, position: action.to, hasMoved: true } : u
   );
 
+  log.push(`${unit.name} si sposta da (${unit.position.x},${unit.position.y}) a (${action.to.x},${action.to.y})!`);
+
   const winner = newPlayers.find(p => p.winPoints >= 3);
   if (winner) {
     return {
@@ -48,7 +52,8 @@ export function handleMove(state: GameState, action: MoveAction): GameState {
       players: newPlayers,
       usedChests: newUsedChests,
       isGameOver: true,
-      winnerId: winner.id
+      winnerId: winner.id,
+      combatLog: log,
     };
   }
 
@@ -56,7 +61,8 @@ export function handleMove(state: GameState, action: MoveAction): GameState {
     ...state,
     units: newUnits,
     players: newPlayers,
-    usedChests: newUsedChests
+    usedChests: newUsedChests,
+    combatLog: log,
   };
 }
 

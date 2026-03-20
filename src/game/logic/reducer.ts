@@ -1,4 +1,4 @@
-import type { GameState, GameAction, Unit } from "../types/gameTypes";
+import type { GameState, GameAction } from "../types/gameTypes";
 import { handleMove } from "./movement";
 import { handleAttack, resolveCombat } from "./combat";
 
