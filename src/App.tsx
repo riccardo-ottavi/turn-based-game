@@ -3,7 +3,7 @@ import type { Unit, MapCell } from "./game/types/gameTypes";
 import { getReachableCells } from "./game/logic/movement";
 import { applyAction } from "./game/logic/reducer";
 import { getAttackableCells } from "./game/logic/combat";
-import { createInitAction, createStartCombatAction, createResolveCombatAction, createEndTurnAction, createMoveAction } from "./game/actions/actionCreators";
+import { createInitAction, createStartCombatAction, createEndTurnAction, createMoveAction } from "./game/actions/actionCreators";
 import grass from "./assets/tile-grass.png";
 import tree from "./assets/tile-tree.png";
 import wall from "./assets/tile-wall.png";
@@ -221,6 +221,7 @@ export default function App() {
               }}
             >
               {unitsInCell.map((u, i) => (
+                <div className="map-unit-cell">
                 <div
                   key={u.id}
                   style={{
@@ -239,6 +240,8 @@ export default function App() {
                   }}
                 >
                   {u.name[0]}:{u.currentHp}
+                </div>
+                  <img src={unitImages[u.image]} alt="" />
                 </div>
               ))}
             </div>

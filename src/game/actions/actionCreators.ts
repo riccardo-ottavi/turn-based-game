@@ -45,6 +45,6 @@ export function createEndTurnAction(): GameAction {
   return { type: "endTurn" };
 }
 
-export function createDeployAction(unitId: number, position: Position): GameAction {
-  return { type: "deploy", unitId, position };
+export function createCollectChestAction(unitId: number, position: Position): GameAction {
+  return { type: "collectChest", unitId, position };
 }

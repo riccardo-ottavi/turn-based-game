@@ -45,7 +45,7 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
   return [
     {
       id: ownerId * 10 + 1,
-      name: "Orc Warrior",
+      name: "Warrior Orc",
       category: "melee",
       currentHp: 12,
       baseStats: { hp: 12, attack: 4, defence: 1, speed: 1, range: 1 },
@@ -57,7 +57,7 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
     },
     {
       id: ownerId * 10 + 2,
-      name: "Orc Archer",
+      name: "Archer Orc",
       category: "ranged",
       currentHp: 7,
       baseStats: { hp: 7, attack: 3, defence: 1, speed: 2, range: 3 },
@@ -69,7 +69,7 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
     },
     {
       id: ownerId * 10 + 3,
-      name: "Orc Chieftain",
+      name: "Chieftain Orc",
       category: "tank",
       currentHp: 18,
       baseStats: { hp: 18, attack: 3, defence: 3, speed: 1, range: 1 },

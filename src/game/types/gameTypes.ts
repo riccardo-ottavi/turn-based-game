@@ -50,17 +50,19 @@ export type GameState = {
 }
 
 export type GameAction =
-    { type: "deploy", unitId: number, position : Position }
   | { type: "init"; state: GameState }
   | { type: "move"; unitId: number; to: Position }
   | { type: "startCombat" }
   | { type: "resolveCombat" }
   | { type: "endTurn" }
   | {
-    targetPosition: any;
-    attackerId: number;
-    targetId: number; type: "attack" 
-};
+      type: "attack";
+      attackerId: number;
+      targetId: number;
+      targetPosition: Position;
+    }
+  | { type: "deploy"; unitId: number; position: Position }
+  | { type: "collectChest"; unitId: number; position: Position };  
 
   export type TileType = "wall" | "tree" | "chest" | "grass";
 
