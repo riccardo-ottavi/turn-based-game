@@ -4,14 +4,28 @@
   box-sizing: border-box;
 }
 
+body{
+  background-color: #f3e2bf;
+}
+
 .container{
   display: flex;
   gap: 20px; 
+  margin: 0 auto;
+  justify-content: center;
+  align-items: center;
 }
 
 .info-displayer{
   width: 300px;
-  background-color: aqua;
+  border: black solid 1px;
+  min-height: 500px;
+  padding: 10px;
+  background-color: rgb(255, 252, 234);
+}
+
+button{
+  margin:10px 10px 10px 0;
 }
 
 .combat-log{
@@ -29,11 +43,6 @@
   height: 50px;
 }
 
-button {
-  max-height: 50px;
-  margin-top: 40vh;
-}
-
 .unit-card{
   border: solid black 1px;
   width: 100px;
@@ -41,12 +50,13 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-around
+  justify-content: space-around;
+  background-color: rgb(255, 252, 234);
+
 }
 
 .army-container{
   display: flex;
-  height: 300px;
 }
 
 .map-unit-cell img{

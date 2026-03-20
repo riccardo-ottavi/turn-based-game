@@ -154,7 +154,7 @@ export default function App() {
     <div className="container">
 
       <InfoPanel state={state} selectedUnitId={selectedUnitId} />
-
+      <div>
       <ArmyPanel
         units={state.units}
         currentPlayerId={state.currentPlayerId}
@@ -176,6 +176,7 @@ export default function App() {
         unitImages={unitImages}
         onCellClick={handleCellClick}
       />
+      </div>
     </div>
   );
 }

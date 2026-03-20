@@ -35,7 +35,7 @@ export type Unit = {
   image :string;
 };
 
-export type GamePhase = "deployment" | "movement" | "combat";
+export type GamePhase = "movement" | "combat";
 
 export type GameState = {
     winnerId: number;
@@ -63,7 +63,6 @@ export type GameAction =
       targetId: number;
       targetPosition: Position;
     }
-  | { type: "deploy"; unitId: number; position: Position }
   | { type: "collectChest"; unitId: number; position: Position }
   | { type: "selectUnit"; unitId: number }
   | { type: "clearSelection" }

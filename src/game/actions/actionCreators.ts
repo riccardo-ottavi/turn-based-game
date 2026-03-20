@@ -24,7 +24,8 @@ export function createInitAction(): GameAction {
     currentPlayerId: 1,
     combatLog: [],
     usedChests: {} as Record<string, boolean>,
-    winnerId: 0
+    winnerId: 0,
+    selectedUnitId: null
   };
 
   return { type: "init", state };

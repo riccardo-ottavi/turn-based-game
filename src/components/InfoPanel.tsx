@@ -1,4 +1,3 @@
-// components/InfoPanel.tsx
 import type { GameState } from "../game/types/gameTypes";
 
 type Props = {
