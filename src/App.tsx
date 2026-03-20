@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useState } from "react";
+import { useReducer, useEffect, useMemo } from "react";
 import type { Unit, MapCell } from "./game/types/gameTypes";
 import { getReachableCells } from "./game/logic/movement";
 import { applyAction } from "./game/logic/reducer";
@@ -28,7 +28,6 @@ const tileMap: Record<string, string> = {
 };
 
 export default function App() {
-  const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
 
   const [state, dispatch] = useReducer(applyAction, {
     map: [],
@@ -40,7 +39,8 @@ export default function App() {
     isGameOver: false,
     currentPlayerId: 1,
     usedChests: {},
-    winnerId: 0
+    winnerId: 0,
+    selectedUnitId: null
   });
 
   const unitImages: Record<string, string> = {
@@ -63,60 +63,92 @@ export default function App() {
 
   const endTurn = () => dispatch(createEndTurnAction());
 
-  const unitsMap: Record<string, Unit[]> = {};
-  state.units.forEach(u => {
-    const key = `${u.position.x},${u.position.y}`;
-    if (!unitsMap[key]) unitsMap[key] = [];
-    unitsMap[key].push(u);
-  });
+  const unitsMap = useMemo(() => {
+    const map: Record<string, Unit[]> = {};
 
-  const selectedUnit = state.units.find(u => u.id === selectedUnitId);
+    state.units.forEach(u => {
+      const key = `${u.position.x},${u.position.y}`;
+      if (!map[key]) map[key] = [];
+      map[key].push(u);
+    });
 
-  const reachable = selectedUnit && !selectedUnit.hasMoved
-    ? getReachableCells(selectedUnit, state.map)
-    : [];
+    return map;
+  }, [state.units]);
 
-  const attackable =
-    selectedUnit &&
-      state.phase === "combat" &&
-      !selectedUnit.hasAttacked
-      ? getAttackableCells(selectedUnit, state.units)
-      : [];
+  const selectedUnitId = state.selectedUnitId;
+  const selectedUnit = state.units.find(
+  u => u.id === selectedUnitId
+);
+
+  const reachable = useMemo(() => {
+    if (!selectedUnit || selectedUnit.hasMoved) return [];
+    return getReachableCells(selectedUnit, state.map);
+  }, [selectedUnit, state.map]);
+
+  const attackable = useMemo(() => {
+    if (
+      !selectedUnit ||
+      state.phase !== "combat" ||
+      selectedUnit.hasAttacked
+    ) return [];
+
+    return getAttackableCells(selectedUnit, state.units);
+  }, [selectedUnit, state.phase, state.units]);
 
   const handleCellClick = (cell: MapCell, unitsInCell: Unit[]) => {
-    if (!selectedUnitId) {
+  if (!selectedUnitId) {
+    const clickedUnit = unitsInCell.find(
+      u => u.ownerId === state.currentPlayerId
+    );
 
-      const clickedUnit = unitsInCell.find(u => u.ownerId === state.currentPlayerId);
-      if (clickedUnit) setSelectedUnitId(clickedUnit.id);
-      return;
+    if (clickedUnit) {
+      dispatch({ type: "selectUnit", unitId: clickedUnit.id });
+    }
+    return;
+  }
+
+  if (!selectedUnit) return;
+
+  const isAttackable = attackable.some(
+    c => c.x === cell.x && c.y === cell.y
+  );
+
+  if (isAttackable) {
+    const targetUnit = unitsInCell.find(
+      u => u.ownerId !== selectedUnit.ownerId
+    );
+
+    if (targetUnit) {
+      dispatch({
+        type: "attack",
+        attackerId: selectedUnit.id,
+        targetId: targetUnit.id,
+        targetPosition: { x: cell.x, y: cell.y }
+      });
     }
 
-    if (!selectedUnit) return;
+    dispatch({ type: "clearSelection" });
+    return;
+  }
 
-    const isAttackable = attackable.some(c => c.x === cell.x && c.y === cell.y);
-    if (isAttackable) {
-      const targetUnit = unitsInCell.find(u => u.ownerId !== selectedUnit.ownerId);
-      if (targetUnit) {
-        dispatch({
-          type: "attack",
-          attackerId: selectedUnit.id,
-          targetId: targetUnit.id,
-          targetPosition: { x: cell.x, y: cell.y }
-        });
-      }
-      setSelectedUnitId(null);
-      return;
-    }
+  const isReachable = reachable.some(
+    c => c.x === cell.x && c.y === cell.y
+  );
 
-    const isReachable = reachable.some(c => c.x === cell.x && c.y === cell.y);
-    if (isReachable && !selectedUnit.hasMoved) {
-      dispatch(createMoveAction(selectedUnit.id, { x: cell.x, y: cell.y }));
-      setSelectedUnitId(null);
-      return;
-    }
+  if (isReachable && !selectedUnit.hasMoved) {
+    dispatch(
+      createMoveAction(selectedUnit.id, {
+        x: cell.x,
+        y: cell.y
+      })
+    );
 
-    setSelectedUnitId(null);
-  };
+    dispatch({ type: "clearSelection" });
+    return;
+  }
+
+  dispatch({ type: "clearSelection" });
+};
 
   return (
     <div className="container">

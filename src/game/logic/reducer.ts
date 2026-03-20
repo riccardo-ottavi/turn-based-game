@@ -5,17 +5,29 @@ import { handleAttack, resolveCombat } from "./combat";
 export function applyAction(state: GameState, action: GameAction): GameState {
 
   if (state.isGameOver) return state;
-  
+
   switch (action.type) {
 
     case "init":
       return action.state;
-    
+
     case "move":
       return handleMove(state, action);
 
     case "attack":
       return handleAttack(state, action);
+
+    case "selectUnit":
+      return {
+        ...state,
+        selectedUnitId: action.unitId
+      };
+
+    case "clearSelection":
+      return {
+        ...state,
+        selectedUnitId: null
+      };
 
     case "deploy":
       if (state.phase !== "deployment") return state;

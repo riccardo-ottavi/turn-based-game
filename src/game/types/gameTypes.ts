@@ -48,6 +48,7 @@ export type GameState = {
     combatLog: string[]
     map: MapCell[][],
     usedChests: Record<string, boolean>;
+    selectedUnitId: number | null;
 }
 
 export type GameAction =
@@ -63,7 +64,9 @@ export type GameAction =
       targetPosition: Position;
     }
   | { type: "deploy"; unitId: number; position: Position }
-  | { type: "collectChest"; unitId: number; position: Position };  
+  | { type: "collectChest"; unitId: number; position: Position }
+  | { type: "selectUnit"; unitId: number }
+  | { type: "clearSelection" }
 
   export type TileType = "wall" | "tree" | "chest" | "grass";
 
