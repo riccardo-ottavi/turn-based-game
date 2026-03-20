@@ -45,7 +45,8 @@ export type GameState = {
     phase: GamePhase;
     currentPlayerId: number;
     combatLog: string[]
-    map: MapCell[][]
+    map: MapCell[][],
+    usedChests: Record<string, boolean>;
 }
 
 export type GameAction =

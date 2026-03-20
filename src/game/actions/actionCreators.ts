@@ -22,7 +22,8 @@ export function createInitAction(): GameAction {
     phase: "movement",
     isGameOver: false,
     currentPlayerId: 1,
-    combatLog: []
+    combatLog: [],
+    usedChests: {} as Record<string, boolean>
   };
 
   return { type: "init", state };

@@ -37,7 +37,8 @@ export default function App() {
     turn: 1,
     phase: "movement",
     isGameOver: false,
-    currentPlayerId: 1
+    currentPlayerId: 1,
+    usedChests: {}
   });
 
   const unitImages: Record<string, string> = {
@@ -56,7 +57,6 @@ export default function App() {
 
   const startCombat = () => {
     dispatch(createStartCombatAction());
-    dispatch(createResolveCombatAction());
   };
 
   const endTurn = () => dispatch(createEndTurnAction());
@@ -85,6 +85,12 @@ export default function App() {
   return (
     <div className="container">
       <div className="info-displayer">
+        <h2>Players</h2>
+        {state.players.map(p => (
+          <div key={p.id}>
+            Player {p.id} - VP: {p.winPoints}
+          </div>
+        ))}
         <h1>Turno: {state.turn}</h1>
         <h2>Fase: {state.phase}</h2>
         <h3>Giocatore attivo: {state.currentPlayerId}</h3>
@@ -95,28 +101,28 @@ export default function App() {
             : "Seleziona un'unità"}
         </h3>
         <div className="combat-log">
-        <h2>Combat Log</h2>
-        <div style={{ maxHeight: "150px", overflowY: "auto", background: "#eee", padding: "5px" }}>
-          {(state.combatLog || []).map((msg, i) => (
-            <div key={i}>{msg}</div>
-          ))}
+          <h2>Combat Log</h2>
+          <div style={{ maxHeight: "150px", overflowY: "auto", background: "#eee", padding: "5px" }}>
+            {(state.combatLog || []).map((msg, i) => (
+              <div key={i}>{msg}</div>
+            ))}
+          </div>
         </div>
-      </div>
       </div>
 
       <div className="army-container">
         {state.units.map(u => (
           <div key={u.id} className="unit-card">
-              <strong>{u.name}</strong>
-              <img src={unitImages[u.image]} alt="" />
-              HP: {u.currentHp}
-              <br />
-              Pos: ({u.position.x}, {u.position.y})
-              <br />
-              Move: {u.baseStats.speed}
-              <br />
-              Range: {u.baseStats.range}
-              <br />
+            <strong>{u.name}</strong>
+            <img src={unitImages[u.image]} alt="" />
+            HP: {u.currentHp}
+            <br />
+            Pos: ({u.position.x}, {u.position.y})
+            <br />
+            Move: {u.baseStats.speed}
+            <br />
+            Range: {u.baseStats.range}
+            <br />
             {state.phase === "movement" &&
               u.ownerId === state.currentPlayerId}
           </div>

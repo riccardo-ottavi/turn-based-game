@@ -19,6 +19,24 @@ export function handleMove(state: GameState, action: MoveAction): GameState {
   const targetCell = state.map[action.to.y][action.to.x];
   if (!targetCell.walkable) return state;
 
+  const key = `${action.to.x},${action.to.y}`;
+
+let newPlayers = state.players;
+let newUsedChests = { ...state.usedChests };
+
+if (
+  targetCell.type === "chest" &&
+  !state.usedChests[key]
+) {
+  newUsedChests[key] = true;
+
+  newPlayers = state.players.map(p =>
+    p.id === unit.ownerId
+      ? { ...p, winPoints: p.winPoints + 1 }
+      : p
+  );
+}
+
   const occupied = state.units.some(
     u => u.position.x === action.to.x && u.position.y === action.to.y
   );
@@ -30,7 +48,14 @@ export function handleMove(state: GameState, action: MoveAction): GameState {
       : u
   );
 
-  return { ...state, units: newUnits };
+  
+
+  return {
+  ...state,
+  units: newUnits,
+  players: newPlayers,
+  usedChests: newUsedChests
+};
 }
 
 export function getReachableCells(unit: Unit, map: MapCell[][]) {

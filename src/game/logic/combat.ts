@@ -10,6 +10,8 @@ export function handleAttack(state: GameState, action: AttackAction): GameState 
   if (attacker.ownerId !== state.currentPlayerId) return state;
 
   let newUnits = state.units.map(u => ({ ...u }));
+  let kills = 0;
+
   const log: string[] = state.combatLog ? [...state.combatLog] : [];
 
   newUnits.forEach(u => {
@@ -24,7 +26,13 @@ export function handleAttack(state: GameState, action: AttackAction): GameState 
 
       if (distance <= attacker.baseStats.range) {
         const damage = Math.max(attacker.baseStats.attack - u.baseStats.defence, 0);
+
+        const prevHp = u.currentHp;
         u.currentHp = Math.max(u.currentHp - damage, 0);
+
+        if (prevHp > 0 && u.currentHp === 0) {
+          kills++;
+        }
 
         if (damage > 0) {
           log.push(`${attacker.name} colpisce ${u.name} per ${damage} danni!`);
@@ -33,11 +41,25 @@ export function handleAttack(state: GameState, action: AttackAction): GameState 
     }
   });
 
+  // assegna punti dopo il loop
+  const newPlayers = kills > 0
+    ? state.players.map(p =>
+      p.id === attacker.ownerId
+        ? { ...p, winPoints: p.winPoints + kills }
+        : p
+    )
+    : state.players;
+
   newUnits = newUnits
     .filter(u => u.currentHp > 0)
     .map(u => (u.id === attacker.id ? { ...u, hasAttacked: true } : u));
 
-  return { ...state, units: newUnits, combatLog: log };
+  return {
+    ...state,
+    units: newUnits,
+    players: newPlayers,
+    combatLog: log
+  };
 }
 
 export function resolveCombat(state: GameState): GameState {
@@ -54,6 +76,7 @@ export function resolveCombat(state: GameState): GameState {
 
   Object.values(positionsMap).forEach(unitsInHex => {
     unitsInHex.forEach(attacker => {
+      let killsPerPlayer: Record<number, number> = {};
       if (attacker.currentHp <= 0) return;
 
       newUnits.forEach(target => {
@@ -63,16 +86,39 @@ export function resolveCombat(state: GameState): GameState {
             Math.abs(attacker.position.y - target.position.y);
 
           if (distance <= attacker.baseStats.range && distance > 0) {
+
             const damage = Math.max(attacker.baseStats.attack - target.baseStats.defence, 0);
             target.currentHp = Math.max(target.currentHp - damage, 0);
 
             if (damage > 0) {
+              const prevHp = target.currentHp;
+
+              target.currentHp = Math.max(target.currentHp - damage, 0);
+
+              if (prevHp > 0 && target.currentHp === 0) {
+                killsPerPlayer[attacker.ownerId] =
+                  (killsPerPlayer[attacker.ownerId] || 0) + 1;
+              }
               log.push(`${attacker.name} colpisce ${target.name} per ${damage} danni!`);
             }
+            const newPlayers = state.players.map(p => ({
+              ...p,
+              winPoints: p.winPoints + (killsPerPlayer[p.id] || 0)
+            }));
+            return {
+              ...state,
+              units: newUnits.filter(u => u.currentHp > 0),
+              players: newPlayers,
+              combatLog: log
+            };
           }
+
         }
+
       });
+
     });
+
   });
 
   newUnits = newUnits.filter(u => u.currentHp > 0);
