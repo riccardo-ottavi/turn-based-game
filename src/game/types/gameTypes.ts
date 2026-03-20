@@ -32,6 +32,7 @@ export type Unit = {
   position: Position;
   ownerId: number;
   hasMoved: boolean;
+  image :string;
 };
 
 export type GamePhase = "deployment" | "movement" | "combat";

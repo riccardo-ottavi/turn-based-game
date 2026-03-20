@@ -12,7 +12,8 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
         position: { x: 0, y: 0 },  
         ownerId,
         hasMoved: false,
-        hasAttacked: false
+        hasAttacked: false,
+        image: "human-swordsman-icon.png"
       },
       {
         id: ownerId * 10 + 2,
@@ -23,7 +24,8 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
         position: { x: 0, y: 0 },
         ownerId,
         hasMoved: false,
-        hasAttacked: false
+        hasAttacked: false,
+        image: "human-archer-icon.webp"
       },
       {
         id: ownerId * 10 + 3,
@@ -34,7 +36,8 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
         position: { x: 0, y: 0 },
         ownerId,
         hasMoved: false,
-        hasAttacked: false
+        hasAttacked: false,
+        image: "human-commander-icon.webp"
       },
     ];
   }
@@ -49,7 +52,8 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
       position: { x: 0, y: 0 },
       ownerId,
       hasMoved: false,
-      hasAttacked: false
+      hasAttacked: false,
+      image: "orc-swordsman-icon.webp"
     },
     {
       id: ownerId * 10 + 2,
@@ -60,7 +64,8 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
       position: { x: 0, y: 0 },
       ownerId,
       hasMoved: false,
-      hasAttacked: false
+      hasAttacked: false,
+      image: "orc-archer-icon.webp"
     },
     {
       id: ownerId * 10 + 3,
@@ -71,7 +76,8 @@ export function createInitialArmy(ownerId: number, faction: Faction): Unit[] {
       position: { x: 0, y: 0 },
       ownerId,
       hasMoved: false,
-      hasAttacked: false
+      hasAttacked: false,
+      image: "orc-commander-icon.webp"
     },
   ];
 }

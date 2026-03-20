@@ -9,6 +9,12 @@ import tree from "./assets/tile-tree.png";
 import wall from "./assets/tile-wall.png";
 import chest from "./assets/tile-chest.png";
 import './App.css'
+import humanCommander from "./assets/human-commander-icon.webp";
+import humanArcher from "./assets/human-archer-icon.webp";
+import humanSwordsman from "./assets/human-swordsman-icon.png";
+import orcCommander from "./assets/orc-commander-icon.webp";
+import orcSwordsman from "./assets/orc-swordsman-icon.webp";
+import orcArcher from "./assets/orc-archer-icon.webp"
 
 const tileMap: Record<string, string> = {
   grass,
@@ -33,6 +39,16 @@ export default function App() {
     isGameOver: false,
     currentPlayerId: 1
   });
+
+  const unitImages: Record<string, string> = {
+    "human-commander-icon.webp": humanCommander,
+    "human-archer-icon.webp": humanArcher,
+    "human-swordsman-icon.png": humanSwordsman,
+    "orc-commander-icon.webp": orcCommander,
+    "orc-archer-icon.webp": orcArcher,
+    "orc-swordsman-icon.webp": orcSwordsman,
+
+  };
 
   useEffect(() => {
     dispatch(createInitAction());
@@ -68,25 +84,31 @@ export default function App() {
 
   return (
     <div className="container">
-        <div className="info-displayer">
-          <h1>Turno: {state.turn}</h1>
-          <h2>Fase: {state.phase}</h2>
-          <h3>Giocatore attivo: {state.currentPlayerId}</h3>
+      <div className="info-displayer">
+        <h1>Turno: {state.turn}</h1>
+        <h2>Fase: {state.phase}</h2>
+        <h3>Giocatore attivo: {state.currentPlayerId}</h3>
 
-          <h3>
-            {selectedUnitId
-              ? "Scegli: muovi (giallo) o attacca (rosso)"
-              : "Seleziona un'unità"}
-          </h3>
+        <h3>
+          {selectedUnitId
+            ? "Scegli: muovi (giallo) o attacca (rosso)"
+            : "Seleziona un'unità"}
+        </h3>
+        <div className="combat-log">
+        <h2>Combat Log</h2>
+        <div style={{ maxHeight: "150px", overflowY: "auto", background: "#eee", padding: "5px" }}>
+          {(state.combatLog || []).map((msg, i) => (
+            <div key={i}>{msg}</div>
+          ))}
         </div>
+      </div>
+      </div>
 
-        <div className="units-infos">
-          <h2>Unità</h2>
-          {state.units.map(u => (
-          <div key={u.id} style={{ marginBottom: "10px" }}>
-            <div className="unit-card">
-              <strong>{u.name}</strong> (Player {u.ownerId})
-              <br />
+      <div className="army-container">
+        {state.units.map(u => (
+          <div key={u.id} className="unit-card">
+              <strong>{u.name}</strong>
+              <img src={unitImages[u.image]} alt="" />
               HP: {u.currentHp}
               <br />
               Pos: ({u.position.x}, {u.position.y})
@@ -94,39 +116,30 @@ export default function App() {
               Move: {u.baseStats.speed}
               <br />
               Range: {u.baseStats.range}
-
-            </div>
+              <br />
             {state.phase === "movement" &&
               u.ownerId === state.currentPlayerId}
           </div>
         ))}
-        </div>
-        <div className="combat-log">
-          <h2>Combat Log</h2>
-        <div style={{ maxHeight: "150px", overflowY: "auto", background: "#eee", padding: "5px" }}>
-          {(state.combatLog || []).map((msg, i) => (
-            <div key={i}>{msg}</div>
-          ))}
-        </div>
-        </div>
+      </div>
 
-        {state.phase === "movement" && (
-          <button onClick={startCombat}>
-            Fine Movimento → Combattimento
-          </button>
-        )}
+      {state.phase === "movement" && (
+        <button onClick={startCombat}>
+          Fine Movimento → Combattimento
+        </button>
+      )}
 
-        {state.phase === "combat" && (
-          <button onClick={endTurn}>
-            Fine Combattimento → Fine Turno
-          </button>
-        )}
+      {state.phase === "combat" && (
+        <button onClick={endTurn}>
+          Fine Combattimento → Fine Turno
+        </button>
+      )}
 
       <div
         style={{
           gridTemplateColumns: `repeat(${GRID_SIZE}, ${CELL_SIZE}px)`,
           gridTemplateRows: `repeat(${GRID_SIZE}, ${CELL_SIZE}px)`,
-        }} 
+        }}
         className="map"
       >
         {state.map.flat().map((cell: MapCell) => {
@@ -208,7 +221,7 @@ export default function App() {
                     width: "90%",
                     height: "20px",
                     backgroundColor:
-                    u.ownerId === 1 ? "blue" : "red",
+                      u.ownerId === 1 ? "blue" : "red",
                     color: "white",
                     fontSize: "12px",
                     textAlign: "center",
