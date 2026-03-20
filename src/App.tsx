@@ -82,6 +82,40 @@ export default function App() {
       ? getAttackableCells(selectedUnit, state.units)
       : [];
 
+  const handleCellClick = (cell: MapCell, unitsInCell: Unit[]) => {
+    if (!selectedUnitId) {
+      
+      const clickedUnit = unitsInCell.find(u => u.ownerId === state.currentPlayerId);
+      if (clickedUnit) setSelectedUnitId(clickedUnit.id);
+      return;
+    }
+
+    if (!selectedUnit) return;
+
+    const isAttackable = attackable.some(c => c.x === cell.x && c.y === cell.y);
+    if (isAttackable) {
+      const targetUnit = unitsInCell.find(u => u.ownerId !== selectedUnit.ownerId);
+      if (targetUnit) {
+        dispatch({
+          type: "attack",
+          attackerId: selectedUnit.id,
+          targetId: targetUnit.id,
+          targetPosition: { x: cell.x, y: cell.y }
+        });
+      }
+      setSelectedUnitId(null);
+      return;
+    }
+
+    const isReachable = reachable.some(c => c.x === cell.x && c.y === cell.y);
+    if (isReachable && !selectedUnit.hasMoved) {
+      dispatch(createMoveAction(selectedUnit.id, { x: cell.x, y: cell.y }));
+      setSelectedUnitId(null);
+      return;
+    }
+
+    setSelectedUnitId(null);
+  };
 
   return (
     <div className="container">
@@ -110,8 +144,8 @@ export default function App() {
           </div>
         </div>
         {state.isGameOver && (
-  <h1>Game Over! Ha vinto il giocatore {state.winnerId}</h1>
-)}
+          <h1>Game Over! Ha vinto il giocatore {state.winnerId}</h1>
+        )}
       </div>
 
       <div className="army-container">
@@ -155,15 +189,6 @@ export default function App() {
         {state.map.flat().map((cell: MapCell) => {
           const key = `${cell.x},${cell.y}`;
           const unitsInCell = unitsMap[key] || [];
-
-          const isReachable = reachable.some(
-            c => c.x === cell.x && c.y === cell.y
-          );
-
-          const isAttackable = attackable.some(
-            c => c.x === cell.x && c.y === cell.y
-          );
-
           const isSelected = unitsInCell.some(u => u.id === selectedUnitId);
 
           return (
@@ -175,77 +200,30 @@ export default function App() {
                 border: "1px solid black",
                 position: "relative",
                 backgroundImage: `url(${tileMap[cell.type]})`,
-                backgroundSize: "cover"
+                backgroundSize: "cover",
               }}
-              onClick={() => {
-                const clickedUnit = unitsInCell[0];
-
-                if (
-                  clickedUnit &&
-                  clickedUnit.ownerId === state.currentPlayerId
-                ) {
-                  setSelectedUnitId(clickedUnit.id);
-                  return;
-                }
-
-                if (!selectedUnit) return;
-
-
-                if (isAttackable) {
-                  const targetUnit = unitsInCell.find(
-                    u => u.ownerId !== selectedUnit.ownerId
-                  );
-
-                  if (!targetUnit) return;
-
-                  dispatch({
-                    type: "attack",
-                    attackerId: selectedUnit.id,
-                    targetId: targetUnit.id,
-                    targetPosition: { x: cell.x, y: cell.y }
-                  });
-
-                  setSelectedUnitId(null);
-                  return;
-                }
-
-                if (isReachable && !selectedUnit.hasMoved) {
-                  dispatch(
-                    createMoveAction(selectedUnit.id, {
-                      x: cell.x,
-                      y: cell.y
-                    })
-                  );
-
-                  setSelectedUnitId(null);
-                  return;
-                }
-
-                setSelectedUnitId(null);
-              }}
+              onClick={() => handleCellClick(cell, unitsInCell)}
             >
               {unitsInCell.map((u, i) => (
-                <div className="map-unit-cell">
-                <div
-                  key={u.id}
-                  style={{
-                    width: "90%",
-                    height: "20px",
-                    backgroundColor:
-                      u.ownerId === 1 ? "blue" : "red",
-                    color: "white",
-                    fontSize: "12px",
-                    textAlign: "center",
-                    borderRadius: "3px",
-                    position: "absolute",
-                    top: `${i * 22}px`,
-                    left: "5%",
-                    border: isSelected ? "3px solid yellow" : "1px solid black",
-                  }}
-                >
-                  {u.name[0]}:{u.currentHp}
-                </div>
-                  <img src={unitImages[u.image]} alt="" />
+                <div className="map-unit-cell" key={u.id}>
+                  <div
+                    style={{
+                      width: "90%",
+                      height: "20px",
+                      backgroundColor: u.ownerId === 1 ? "blue" : "red",
+                      color: "white",
+                      fontSize: "12px",
+                      textAlign: "center",
+                      borderRadius: "3px",
+                      position: "absolute",
+                      top: `${i * 22}px`,
+                      left: "5%",
+                      border: isSelected ? "3px solid yellow" : "1px solid black",
+                    }}
+                  >
+                    {u.name[0]}:{u.currentHp}
+                  </div>
+                  <img src={unitImages[u.image]} alt={u.name} />
                 </div>
               ))}
             </div>
